@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Excluir Funcionário</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      background-color: #e8f0fe;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      padding: 25px 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      max-width: 400px;
+      width: 100%;
+    }
+    h1 {
+      text-align: center;
+      color: #003366;
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      color: #333;
+      font-weight: 600;
+    }
+    select {
+      width: 100%;
+      padding: 10px 12px;
+      margin-top: 5px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+    button {
+      margin-top: 25px;
+      width: 100%;
+      padding: 12px;
+      background-color: #e53935;
+      color: white;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #b71c1c;
+    }
+    .voltar {
+      margin-top: 15px;
+      text-align: center;
+    }
+    .voltar a {
+      text-decoration: none;
+      color: #4285f4;
+      font-weight: 600;
+    }
+    .voltar a:hover {
+      text-decoration: underline;
+    }
+    #msg {
+      margin-top: 15px;
+      font-weight: bold;
+      text-align: center;
+    }
+    #msg.sucesso {
+      color: #4caf50;
+    }
+    #msg.erro {
+      color: #f44336;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Excluir Funcionário</h1>
+    <label for="selectFuncionario">Selecione o funcionário</label>
+    <select id="selectFuncionario">
+      <option value="">-- Selecione --</option>
+    </select>
+
+    <button onclick="excluir()">Excluir Funcionário</button>
+
+    <div id="msg"></div>
+
+    <div class="voltar">
+      <a href="index.html">← Voltar ao Painel</a>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, getDocs, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCuCbBesvbrOvdzdv1cmCF7M2uaaUfWRU0",
+      authDomain: "meupontoapp-d5d3b.firebaseapp.com",
+      projectId: "meupontoapp-d5d3b",
+      storageBucket: "meupontoapp-d5d3b.appspot.com",
+      messagingSenderId: "700159340275",
+      appId: "1:700159340275:web:51094e94b4159521cf5186",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const selectFuncionario = document.getElementById("selectFuncionario");
+    const msgEl = document.getElementById("msg");
+
+    let funcionarios = [];
+
+    async function carregarFuncionarios() {
+      try {
+        const colRef = collection(db, "funcionarios");
+        const snapshot = await getDocs(colRef);
+        funcionarios = [];
+
+        selectFuncionario.innerHTML = '<option value="">-- Selecione --</option>';
+
+        snapshot.forEach((doc) => {
+          const d = doc.data();
+          funcionarios.push({ id: doc.id, nome: d.nome, cpf: d.cpf });
+          const option = document.createElement("option");
+          option.value = doc.id;
+          option.textContent = `${d.nome} (${d.cpf})`;
+          selectFuncionario.appendChild(option);
+        });
+      } catch (e) {
+        console.error("Erro ao carregar funcionários:", e);
+      }
+    }
+
+    async function excluir() {
+      msgEl.textContent = "";
+      const docIdSelecionado = selectFuncionario.value;
+
+      if (!docIdSelecionado) {
+        msgEl.textContent = "Selecione um funcionário.";
+        msgEl.className = "erro";
+        return;
+      }
+
+      if (!confirm("Tem certeza que deseja excluir este funcionário?")) return;
+
+      try {
+        await deleteDoc(doc(db, "funcionarios", docIdSelecionado));
+        msgEl.textContent = "Funcionário excluído com sucesso!";
+        msgEl.className = "sucesso";
+        carregarFuncionarios();
+      } catch (e) {
+        console.error("Erro ao excluir:", e);
+        msgEl.textContent = "Erro ao excluir funcionário.";
+        msgEl.className = "erro";
+      }
+    }
+
+    carregarFuncionarios();
+
+    window.excluir = excluir;
+  </script>
+</body>
+</html>

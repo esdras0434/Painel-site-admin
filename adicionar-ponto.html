@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Adicionar Ponto</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #e8f0fe;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+      margin: 0;
+    }
+    .container {
+      background: white;
+      padding: 25px 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      max-width: 500px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    h1 {
+      text-align: center;
+      color: #003366;
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+      color: #333;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+    /* Envolvendo o input para posição relativa */
+    .autocomplete-wrapper {
+      position: relative;
+    }
+    #sugestoes {
+      border: 1px solid #ccc;
+      background: white;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      width: 100%;
+      max-height: 150px;
+      overflow-y: auto;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      z-index: 999;
+      box-sizing: border-box;
+    }
+    #sugestoes div {
+      padding: 8px;
+      cursor: pointer;
+    }
+    #sugestoes div:hover {
+      background-color: #f0f0f0;
+    }
+    button {
+      width: 100%;
+      margin-top: 20px;
+      padding: 12px;
+      background-color: #4285f4;
+      color: white;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #3367d6;
+    }
+    #msg {
+      text-align: center;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    .sucesso {
+      color: green;
+    }
+    .erro {
+      color: red;
+    }
+    .voltar {
+      text-align: center;
+      margin-top: 10px;
+    }
+    .voltar a {
+      color: #4285f4;
+      text-decoration: none;
+    }
+    .voltar a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Adicionar Ponto Manual</h1>
+
+    <div class="autocomplete-wrapper">
+      <label>Buscar Funcionário (nome ou CPF):</label>
+      <input type="text" id="busca" placeholder="Digite nome ou CPF" autocomplete="off" />
+      <div id="sugestoes"></div>
+    </div>
+
+    <label>Data:</label>
+    <input type="date" id="data" />
+
+    <label>Tipo de Ponto:</label>
+    <select id="tipo">
+      <option value="entrada_manha">Entrada (Manhã)</option>
+      <option value="saida_almoco">Saída (Almoço)</option>
+      <option value="retorno_almoco">Retorno (Almoço)</option>
+      <option value="saida_tarde">Saída (Tarde)</option>
+    </select>
+
+    <label>Hora:</label>
+    <input type="time" id="hora" step="1" />
+
+    <button onclick="adicionarPonto()">Registrar Ponto</button>
+    <div id="msg"></div>
+
+    <div class="voltar">
+      <a href="index.html">← Voltar ao Painel</a>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore, collection, getDocs, addDoc,
+      query, where
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCuCbBesvbrOvdzdv1cmCF7M2uaaUfWRU0",
+      authDomain: "meupontoapp-d5d3b.firebaseapp.com",
+      projectId: "meupontoapp-d5d3b",
+      storageBucket: "meupontoapp-d5d3b.appspot.com",
+      messagingSenderId: "700159340275",
+      appId: "1:700159340275:web:51094e94b4159521cf5186",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const msgEl = document.getElementById("msg");
+    const buscaInput = document.getElementById("busca");
+    const sugestoes = document.getElementById("sugestoes");
+    let funcionarios = [];
+
+    async function carregarFuncionarios() {
+      const colRef = collection(db, "funcionarios");
+      const snapshot = await getDocs(colRef);
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        if (d.nome && d.cpf) funcionarios.push({ nome: d.nome, cpf: d.cpf });
+      });
+    }
+    carregarFuncionarios();
+
+    buscaInput.addEventListener("input", () => {
+      const termo = buscaInput.value.toLowerCase();
+      sugestoes.innerHTML = "";
+
+      if (!termo) return;
+
+      const filtrados = funcionarios.filter(f => 
+        f.nome.toLowerCase().includes(termo) || f.cpf.includes(termo)
+      );
+
+      filtrados.slice(0, 5).forEach(f => {
+        const div = document.createElement("div");
+        div.textContent = `${f.nome} (${f.cpf})`;
+        div.onclick = () => {
+          buscaInput.value = `${f.nome} (${f.cpf})`;
+          sugestoes.innerHTML = "";
+        };
+        sugestoes.appendChild(div);
+      });
+    });
+
+    async function adicionarPonto() {
+      msgEl.textContent = "";
+      msgEl.className = "";
+
+      const cpf = buscaInput.value.match(/\(([^)]+)\)$/)?.[1];
+      const data = document.getElementById("data").value;
+      const tipo = document.getElementById("tipo").value;
+      const hora = document.getElementById("hora").value;
+
+      if (!cpf || !data || !tipo || !hora) {
+        msgEl.textContent = "Preencha todos os campos corretamente.";
+        msgEl.className = "erro";
+        return;
+      }
+
+      try {
+        const colRef = collection(db, "pontos");
+        const q = query(colRef, where("cpf", "==", cpf), where("data", "==", data), where("tipo", "==", tipo));
+        const snapshot = await getDocs(q);
+
+        if (!snapshot.empty) {
+          msgEl.textContent = "Ponto já registrado para este horário.";
+          msgEl.className = "erro";
+          return;
+        }
+
+        await addDoc(colRef, { cpf, data, tipo, hora });
+        msgEl.textContent = "Ponto registrado com sucesso!";
+        msgEl.className = "sucesso";
+        document.getElementById("hora").value = "";
+      } catch (e) {
+        console.error(e);
+        msgEl.textContent = "Erro ao registrar ponto.";
+        msgEl.className = "erro";
+      }
+    }
+
+    window.adicionarPonto = adicionarPonto;
+  </script>
+</body>
+</html>

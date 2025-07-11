@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Painel de Pontos</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #e8f0fe;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 40px auto;
+      background: white;
+      padding: 25px 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      text-align: center;
+      color: #003366;
+      margin-bottom: 25px;
+    }
+
+    .filtros {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .filtros input[type="text"],
+    .filtros input[type="date"],
+    .filtros input[type="month"] {
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+      width: 200px;
+    }
+
+    .filtros button {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 6px;
+      background-color: #4285f4;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .filtros button:hover {
+      background-color: #3367d6;
+    }
+
+    .acoes-barra {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+      margin-bottom: 25px;
+    }
+
+    .acoes-barra a,
+    .acoes-barra button {
+      text-decoration: none;
+      padding: 10px 15px;
+      background-color: #4285f4;
+      color: white;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .acoes-barra a:hover,
+    .acoes-barra button:hover {
+      background-color: #3367d6;
+    }
+
+    .autocomplete-container {
+      position: relative;
+    }
+
+    .autocomplete-box {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      max-height: 150px;
+      overflow-y: auto;
+      z-index: 10;
+    }
+
+    .autocomplete-box div {
+      padding: 8px;
+      cursor: pointer;
+    }
+
+    .autocomplete-box div:hover {
+      background-color: #f1f1f1;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 10px;
+      border: 1px solid #ccc;
+      text-align: center;
+    }
+
+    th {
+      background-color: #f2f2f2;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Painel Administrativo</h1>
+
+    <div class="filtros">
+      <div class="autocomplete-container">
+        <input
+          type="text"
+          id="buscaFuncionario"
+          placeholder="Buscar por nome ou CPF"
+          autocomplete="off"
+        />
+        <div id="sugestoes" class="autocomplete-box"></div>
+      </div>
+
+      <input type="date" id="filtroData" />
+      <input type="month" id="filtroMes" />
+      <button onclick="buscarPontos()">Buscar</button>
+    </div>
+
+    <!-- Opções administrativas abaixo da pesquisa -->
+    <div class="acoes-barra">
+      <a href="cadastrar.html">Cadastrar Funcionário</a>
+      <a href="editar.html">Editar Funcionário</a>
+      <a href="excluir.html">Excluir Funcionário</a>
+      <a href="editar-ponto.html">Editar Ponto</a>
+      <a href="adicionar-ponto.html">Adicionar Ponto</a>
+      <button onclick="exportarPDF()">Exportar PDF</button>
+    </div>
+
+    <table id="tabelaPontos">
+      <thead>
+        <tr>
+          <th colspan="5" id="nomeFuncionario">Funcionário: -</th>
+        </tr>
+        <tr>
+          <th>Data</th>
+          <th>Entrada (Manhã)</th>
+          <th>Saída (Almoço)</th>
+          <th>Retorno (Almoço)</th>
+          <th>Saída (Tarde)</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- Bibliotecas jsPDF e AutoTable -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+  <script type="module" src="script.js"></script>
+</body>
+</html>
