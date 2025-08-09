@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <title>Login do Painel</title>
   <style>
-    /* Reset básico */
     * {
       box-sizing: border-box;
     }
@@ -77,6 +76,14 @@
       font-weight: 600;
       min-height: 22px;
     }
+
+    @keyframes shake {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      50% { transform: translateX(5px); }
+      75% { transform: translateX(-5px); }
+      100% { transform: translateX(0); }
+    }
   </style>
 </head>
 <body>
@@ -88,6 +95,13 @@
   </div>
 
   <script>
+    // Atalho para login ao apertar Enter
+    document.getElementById('senha').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        fazerLogin();
+      }
+    });
+
     function fazerLogin() {
       const senha = document.getElementById('senha').value;
       const senhaCorreta = 'deildo#123';
@@ -98,7 +112,6 @@
       } else {
         const erroEl = document.getElementById('erro');
         erroEl.innerText = 'Senha incorreta!';
-        // Animação simples de shake
         erroEl.style.animation = 'shake 0.3s';
         erroEl.addEventListener('animationend', () => {
           erroEl.style.animation = '';
@@ -106,15 +119,5 @@
       }
     }
   </script>
-
-  <style>
-    @keyframes shake {
-      0% { transform: translateX(0); }
-      25% { transform: translateX(-5px); }
-      50% { transform: translateX(5px); }
-      75% { transform: translateX(-5px); }
-      100% { transform: translateX(0); }
-    }
-  </style>
 </body>
 </html>
