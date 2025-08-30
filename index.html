@@ -254,7 +254,10 @@
 
       doc.autoTable({
         head: [['Data','Entrada','Saída Almoço','Retorno','Saída','Horas Trabalhadas','Horas Extras']],
-        body: linhas,
+        body: [
+          ...linhas,
+          ["", "", "", "", "TOTAL", totalHoras.toFixed(2), totalExtras.toFixed(2)]
+        ],
         startY: 35
       });
 
@@ -272,4 +275,3 @@
   </script>
 </body>
 </html>
-
