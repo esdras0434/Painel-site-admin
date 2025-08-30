@@ -11,7 +11,6 @@
       margin: 0;
       padding: 0;
     }
-
     .container {
       max-width: 1100px;
       margin: 40px auto;
@@ -20,13 +19,11 @@
       border-radius: 12px;
       box-shadow: 0 0 15px rgba(0,0,0,0.1);
     }
-
     h1 {
       text-align: center;
       color: #003366;
       margin-bottom: 25px;
     }
-
     .filtros {
       display: flex;
       flex-wrap: wrap;
@@ -35,7 +32,6 @@
       justify-content: center;
       margin-bottom: 20px;
     }
-
     .filtros input[type="text"],
     .filtros input[type="month"] {
       padding: 10px;
@@ -44,7 +40,6 @@
       font-size: 1rem;
       width: 200px;
     }
-
     .filtros button {
       padding: 10px 15px;
       border: none;
@@ -55,11 +50,9 @@
       cursor: pointer;
       transition: background-color 0.3s;
     }
-
     .filtros button:hover {
       background-color: #3367d6;
     }
-
     .acoes-barra {
       display: flex;
       flex-wrap: wrap;
@@ -68,7 +61,6 @@
       margin-top: 10px;
       margin-bottom: 25px;
     }
-
     .acoes-barra a,
     .acoes-barra button {
       text-decoration: none;
@@ -81,23 +73,19 @@
       cursor: pointer;
       transition: background-color 0.3s;
     }
-
     .acoes-barra a:hover,
     .acoes-barra button:hover {
       background-color: #3367d6;
     }
-
     table {
       width: 100%;
       border-collapse: collapse;
     }
-
     th, td {
       padding: 10px;
       border: 1px solid #ccc;
       text-align: center;
     }
-
     th {
       background-color: #f2f2f2;
     }
@@ -148,9 +136,8 @@
   <!-- Firebase Modular v9+ -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, query, where, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, query, where, orderBy, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // Configuração do Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyCuCbBesvbrOvdzdv1cmCF7M2uaaUfWRU0",
       authDomain: "meupontoapp-d5d3b.firebaseapp.com",
@@ -162,11 +149,9 @@
       measurementId: "G-1TX8XYMSVK"
     };
 
-    // Inicializar Firebase
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Auxiliar: calcular diferença de horas
     function calcularHoras(inicio, fim) {
       if (!inicio || !fim) return 0;
       const [h1, m1] = inicio.split(":").map(Number);
@@ -196,25 +181,50 @@
       const inicioMes = new Date(ano, mesNum - 1, 1);
       const fimMes = new Date(ano, mesNum, 0);
 
-      const q = query(
+      // Tentativa com Timestamp
+      let q = query(
         collection(db, "pontos"),
         where("cpf", "==", cpf),
-        where("data", ">=", inicioMes.toISOString().split("T")[0]),
-        where("data", "<=", fimMes.toISOString().split("T")[0]),
+        where("data", ">=", Timestamp.fromDate(inicioMes)),
+        where("data", "<=", Timestamp.fromDate(fimMes)),
         orderBy("data", "asc")
       );
 
-      const snapshot = await getDocs(q);
+      let snapshot = await getDocs(q);
+
+      // Se não encontrar nada, tenta como string
+      if (snapshot.empty) {
+        const dataInicio = `${ano}-${String(mesNum).padStart(2, '0')}-01`;
+        const dataFim = `${ano}-${String(mesNum).padStart(2, '0')}-${String(fimMes.getDate()).padStart(2, '0')}`;
+        q = query(
+          collection(db, "pontos"),
+          where("cpf", "==", cpf),
+          where("data", ">=", dataInicio),
+          where("data", "<=", dataFim),
+          orderBy("data", "asc")
+        );
+        snapshot = await getDocs(q);
+      }
 
       snapshot.forEach(docSnap => {
         const p = docSnap.data();
+
+        // Ajusta formato da data
+        let dataFormatada;
+        if (p.data instanceof Timestamp) {
+          const d = p.data.toDate();
+          dataFormatada = d.toISOString().split("T")[0];
+        } else {
+          dataFormatada = p.data;
+        }
+
         const horasManha = calcularHoras(p.entrada, p.saidaAlmoco);
         const horasTarde = calcularHoras(p.retornoAlmoco, p.saida);
         const totalDia = horasManha + horasTarde;
         const extras = totalDia > 8 ? totalDia - 8 : 0;
 
         const linha = {
-          data: p.data,
+          data: dataFormatada,
           entrada: p.entrada || "-",
           almocoSaida: p.saidaAlmoco || "-",
           almocoRetorno: p.retornoAlmoco || "-",
@@ -275,7 +285,6 @@
       doc.text(`Total de Horas Trabalhadas no Mês: ${totalHoras.toFixed(2)}h`, 14, yFinal);
       doc.text(`Total de Horas Extras no Mês: ${totalExtras.toFixed(2)}h`, 14, yFinal + 10);
 
-      // Linha de assinatura
       doc.line(14, yFinal + 40, 100, yFinal + 40);
       doc.text("Assinatura do Funcionário", 14, yFinal + 48);
 
