@@ -88,32 +88,6 @@
       background-color: #3367d6;
     }
 
-    .autocomplete-container {
-      position: relative;
-    }
-
-    .autocomplete-box {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      background: white;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      max-height: 150px;
-      overflow-y: auto;
-      z-index: 10;
-    }
-
-    .autocomplete-box div {
-      padding: 8px;
-      cursor: pointer;
-    }
-
-    .autocomplete-box div:hover {
-      background-color: #f1f1f1;
-    }
-
     table {
       width: 100%;
       border-collapse: collapse;
@@ -135,17 +109,7 @@
     <h1>Painel Administrativo</h1>
 
     <div class="filtros">
-      <div class="autocomplete-container">
-        <input
-          type="text"
-          id="buscaFuncionario"
-          placeholder="Buscar por nome ou CPF"
-          autocomplete="off"
-        />
-        <div id="sugestoes" class="autocomplete-box"></div>
-      </div>
-
-      <input type="date" id="filtroData" />
+      <input type="text" id="buscaFuncionario" placeholder="Buscar por CPF" />
       <input type="month" id="filtroMes" />
       <button onclick="buscarPontos()">Buscar</button>
     </div>
@@ -178,87 +142,132 @@
     </table>
   </div>
 
-  <!-- Bibliotecas jsPDF e AutoTable -->
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <!-- jsPDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
   <script>
-    // Função auxiliar para calcular diferença de horas
+    // === CONFIG FIREBASE ===
+    const firebaseConfig = {
+      apiKey: "SUA_API_KEY",
+      authDomain: "SEU_AUTH_DOMAIN",
+      projectId: "SEU_PROJECT_ID",
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Auxiliar: calcular diferença de horas
     function calcularHoras(inicio, fim) {
       if (!inicio || !fim) return 0;
       const [h1, m1] = inicio.split(":").map(Number);
       const [h2, m2] = fim.split(":").map(Number);
-      return (h2*60+m2 - (h1*60+m1)) / 60;
+      return (h2 * 60 + m2 - (h1 * 60 + m1)) / 60;
     }
 
-    function buscarPontos() {
+    let dadosTabela = [];
+    let funcionarioSelecionado = "";
+
+    async function buscarPontos() {
+      const cpf = document.getElementById("buscaFuncionario").value.trim();
+      const mes = document.getElementById("filtroMes").value;
+      if (!cpf || !mes) {
+        alert("Digite o CPF e selecione o mês!");
+        return;
+      }
+
+      funcionarioSelecionado = cpf;
+      document.getElementById("nomeFuncionario").innerText = "Funcionário: " + cpf;
+
       const tbody = document.querySelector("#tabelaPontos tbody");
       tbody.innerHTML = "";
+      dadosTabela = [];
 
-      // Exemplo de dados simulados
-      const pontos = [
-        {data:"2025-08-01", entrada:"08:00", almocoSaida:"12:00", almocoRetorno:"13:00", saida:"17:30"},
-        {data:"2025-08-02", entrada:"08:15", almocoSaida:"12:05", almocoRetorno:"13:00", saida:"18:20"},
-        {data:"2025-08-03", entrada:"08:10", almocoSaida:"12:00", almocoRetorno:"13:15", saida:"17:00"}
-      ];
+      const [ano, mesNum] = mes.split("-");
+      const inicioMes = new Date(ano, mesNum - 1, 1);
+      const fimMes = new Date(ano, mesNum, 0);
 
-      pontos.forEach(p => {
-        const horasManha = calcularHoras(p.entrada, p.almocoSaida);
-        const horasTarde = calcularHoras(p.almocoRetorno, p.saida);
+      const snapshot = await db.collection("pontos")
+        .where("cpf", "==", cpf)
+        .where("data", ">=", inicioMes.toISOString().split("T")[0])
+        .where("data", "<=", fimMes.toISOString().split("T")[0])
+        .orderBy("data", "asc")
+        .get();
+
+      snapshot.forEach(doc => {
+        const p = doc.data();
+        const horasManha = calcularHoras(p.entrada, p.saidaAlmoco);
+        const horasTarde = calcularHoras(p.retornoAlmoco, p.saida);
         const totalDia = horasManha + horasTarde;
-        const extras = totalDia > 8 ? (totalDia - 8) : 0;
+        const extras = totalDia > 8 ? totalDia - 8 : 0;
+
+        const linha = {
+          data: p.data,
+          entrada: p.entrada || "-",
+          almocoSaida: p.saidaAlmoco || "-",
+          almocoRetorno: p.retornoAlmoco || "-",
+          saida: p.saida || "-",
+          horas: totalDia.toFixed(2),
+          extras: extras.toFixed(2)
+        };
+
+        dadosTabela.push(linha);
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td>${p.data}</td>
-          <td>${p.entrada}</td>
-          <td>${p.almocoSaida}</td>
-          <td>${p.almocoRetorno}</td>
-          <td>${p.saida}</td>
-          <td>${totalDia.toFixed(2)}</td>
-          <td>${extras.toFixed(2)}</td>
+          <td>${linha.data}</td>
+          <td>${linha.entrada}</td>
+          <td>${linha.almocoSaida}</td>
+          <td>${linha.almocoRetorno}</td>
+          <td>${linha.saida}</td>
+          <td>${linha.horas}</td>
+          <td>${linha.extras}</td>
         `;
         tbody.appendChild(tr);
       });
     }
 
     async function exportarPDF() {
+      if (dadosTabela.length === 0) {
+        alert("Nenhum dado para exportar!");
+        return;
+      }
+
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
 
-      const tabela = document.querySelector("#tabelaPontos");
       let totalHoras = 0;
       let totalExtras = 0;
 
-      const linhas = [];
-      tabela.querySelectorAll("tbody tr").forEach(tr => {
-        const tds = tr.querySelectorAll("td");
-        const linha = Array.from(tds).map(td => td.textContent);
-        linhas.push(linha);
-
-        totalHoras += parseFloat(tds[5].textContent);
-        totalExtras += parseFloat(tds[6].textContent);
+      const linhas = dadosTabela.map(l => {
+        totalHoras += parseFloat(l.horas);
+        totalExtras += parseFloat(l.extras);
+        return [l.data, l.entrada, l.almocoSaida, l.almocoRetorno, l.saida, l.horas, l.extras];
       });
 
       doc.setFontSize(14);
       doc.text("Relatório de Pontos", 14, 20);
+      doc.text("Funcionário (CPF): " + funcionarioSelecionado, 14, 28);
 
       doc.autoTable({
         head: [['Data','Entrada','Saída Almoço','Retorno','Saída','Horas Trabalhadas','Horas Extras']],
         body: linhas,
-        startY: 30
+        startY: 35
       });
 
       const yFinal = doc.lastAutoTable.finalY + 10;
       doc.setFontSize(12);
       doc.text(`Total de Horas Trabalhadas no Mês: ${totalHoras.toFixed(2)}h`, 14, yFinal);
-      doc.text(`Total de Horas Extras no Mês: ${totalExtras.toFixed(2)}h`, 14, yFinal+10);
+      doc.text(`Total de Horas Extras no Mês: ${totalExtras.toFixed(2)}h`, 14, yFinal + 10);
 
       // Linha de assinatura
-      doc.line(14, yFinal+40, 100, yFinal+40);
-      doc.text("Assinatura do Funcionário", 14, yFinal+48);
+      doc.line(14, yFinal + 40, 100, yFinal + 40);
+      doc.text("Assinatura do Funcionário", 14, yFinal + 48);
 
-      doc.save("relatorio-pontos.pdf");
+      doc.save(`relatorio-${funcionarioSelecionado}.pdf`);
     }
   </script>
 </body>
