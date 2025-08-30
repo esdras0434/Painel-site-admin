@@ -31,6 +31,7 @@
       align-items: center;
       justify-content: center;
       margin-bottom: 20px;
+      position: relative;
     }
     .filtros input[type="text"],
     .filtros input[type="month"] {
@@ -39,6 +40,27 @@
       border: 1px solid #ccc;
       font-size: 1rem;
       width: 200px;
+    }
+    #listaSugestoes {
+      position: absolute;
+      top: 42px;
+      left: 0;
+      width: 200px;
+      background: white;
+      border: 1px solid #ccc;
+      max-height: 200px;
+      overflow-y: auto;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      z-index: 1000;
+    }
+    #listaSugestoes li {
+      padding: 8px;
+      cursor: pointer;
+    }
+    #listaSugestoes li:hover {
+      background-color: #f0f0f0;
     }
     .filtros button {
       padding: 10px 15px;
@@ -96,7 +118,10 @@
     <h1>Painel Administrativo</h1>
 
     <div class="filtros">
-      <input type="text" id="buscaFuncionario" placeholder="Buscar por CPF" />
+      <div style="position:relative;">
+        <input type="text" id="buscaFuncionario" placeholder="Buscar por Nome/CPF" autocomplete="off" />
+        <ul id="listaSugestoes"></ul>
+      </div>
       <input type="month" id="filtroMes" />
       <button onclick="buscarPontos()">Buscar</button>
     </div>
@@ -129,14 +154,12 @@
     </table>
   </div>
 
-  <!-- jsPDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
-  <!-- Firebase Modular v9+ -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, query, where, orderBy, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, query, where, orderBy, getDocs, Timestamp, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCuCbBesvbrOvdzdv1cmCF7M2uaaUfWRU0",
@@ -152,6 +175,35 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    const campoBusca = document.getElementById("buscaFuncionario");
+    const listaSugestoes = document.getElementById("listaSugestoes");
+
+    campoBusca.addEventListener("input", async () => {
+      const termo = campoBusca.value.trim().toLowerCase();
+      listaSugestoes.innerHTML = "";
+      if (termo.length < 2) return;
+
+      const q = query(
+        collection(db, "funcionarios"),
+        where("nomeLower", ">=", termo),
+        where("nomeLower", "<=", termo + "\uf8ff"),
+        orderBy("nomeLower"),
+        limit(10)
+      );
+
+      const snapshot = await getDocs(q);
+      snapshot.forEach(docSnap => {
+        const func = docSnap.data();
+        const li = document.createElement("li");
+        li.textContent = `${func.nome} (${func.cpf})`;
+        li.addEventListener("click", () => {
+          campoBusca.value = func.cpf;
+          listaSugestoes.innerHTML = "";
+        });
+        listaSugestoes.appendChild(li);
+      });
+    });
+
     function calcularHoras(inicio, fim) {
       if (!inicio || !fim) return 0;
       const [h1, m1] = inicio.split(":").map(Number);
@@ -163,7 +215,7 @@
     let funcionarioSelecionado = "";
 
     window.buscarPontos = async function () {
-      const cpf = document.getElementById("buscaFuncionario").value.trim();
+      const cpf = campoBusca.value.trim();
       const mes = document.getElementById("filtroMes").value;
       if (!cpf || !mes) {
         alert("Digite o CPF e selecione o mês!");
@@ -181,7 +233,6 @@
       const inicioMes = new Date(ano, mesNum - 1, 1);
       const fimMes = new Date(ano, mesNum, 0);
 
-      // Tentativa com Timestamp
       let q = query(
         collection(db, "pontos"),
         where("cpf", "==", cpf),
@@ -192,7 +243,6 @@
 
       let snapshot = await getDocs(q);
 
-      // Se não encontrar nada, tenta como string
       if (snapshot.empty) {
         const dataInicio = `${ano}-${String(mesNum).padStart(2, '0')}-01`;
         const dataFim = `${ano}-${String(mesNum).padStart(2, '0')}-${String(fimMes.getDate()).padStart(2, '0')}`;
@@ -206,24 +256,16 @@
         snapshot = await getDocs(q);
       }
 
-      snapshot.forEach(docSnap => {
-        const p = docSnap.data();
-
-        // Ajusta formato da data
-        let dataFormatada;
-        if (p.data instanceof Timestamp) {
-          const d = p.data.toDate();
-          dataFormatada = d.toISOString().split("T")[0];
-        } else {
-          dataFormatada = p.data;
-        }
+      snapshot.forEach(pDoc => {
+        const p = pDoc.data();
+        let dataFormatada = p.data instanceof Timestamp ? p.data.toDate().toISOString().split("T")[0] : p.data;
 
         const horasManha = calcularHoras(p.entrada, p.saidaAlmoco);
         const horasTarde = calcularHoras(p.retornoAlmoco, p.saida);
         const totalDia = horasManha + horasTarde;
         const extras = totalDia > 8 ? totalDia - 8 : 0;
 
-        const linha = {
+        dadosTabela.push({
           data: dataFormatada,
           entrada: p.entrada || "-",
           almocoSaida: p.saidaAlmoco || "-",
@@ -231,21 +273,19 @@
           saida: p.saida || "-",
           horas: totalDia.toFixed(2),
           extras: extras.toFixed(2)
-        };
+        });
 
-        dadosTabela.push(linha);
-
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${linha.data}</td>
-          <td>${linha.entrada}</td>
-          <td>${linha.almocoSaida}</td>
-          <td>${linha.almocoRetorno}</td>
-          <td>${linha.saida}</td>
-          <td>${linha.horas}</td>
-          <td>${linha.extras}</td>
+        tbody.innerHTML += `
+          <tr>
+            <td>${dataFormatada}</td>
+            <td>${p.entrada || "-"}</td>
+            <td>${p.saidaAlmoco || "-"}</td>
+            <td>${p.retornoAlmoco || "-"}</td>
+            <td>${p.saida || "-"}</td>
+            <td>${totalDia.toFixed(2)}</td>
+            <td>${extras.toFixed(2)}</td>
+          </tr>
         `;
-        tbody.appendChild(tr);
       });
     };
 
@@ -273,10 +313,7 @@
 
       doc.autoTable({
         head: [['Data','Entrada','Saída Almoço','Retorno','Saída','Horas Trabalhadas','Horas Extras']],
-        body: [
-          ...linhas,
-          ["", "", "", "", "TOTAL", totalHoras.toFixed(2), totalExtras.toFixed(2)]
-        ],
+        body: [...linhas, ["", "", "", "", "TOTAL", totalHoras.toFixed(2), totalExtras.toFixed(2)]],
         startY: 35
       });
 
