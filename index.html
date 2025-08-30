@@ -2,331 +2,238 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <title>Painel de Pontos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel Admin - Meu Ponto</title>
   <link rel="stylesheet" href="style.css" />
+  <script type="module" src="firebase-config.js"></script>
+  <script type="module">
+    import { db } from './firebase-config.js';
+    import {
+      collection, query, where, getDocs, doc
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    let adminLogado = false;
+    let ultimoCPF = null;
+    let ultimoPontos = [];
+
+    async function loginAdmin() {
+      const senha = prompt("Digite a senha de administrador:");
+      if (senha === "admin123") {
+        adminLogado = true;
+        document.getElementById("adminPanel").style.display = "block";
+      } else {
+        alert("Senha incorreta!");
+      }
+    }
+
+    async function buscarFuncionarios(termo) {
+      const funcionariosRef = collection(db, "funcionarios");
+      const snapshot = await getDocs(funcionariosRef);
+      const lista = document.getElementById("listaSugestoes");
+      lista.innerHTML = "";
+
+      snapshot.forEach(doc => {
+        const dados = doc.data();
+        const texto = ${dados.nome} - ${dados.cpf};
+        if (texto.toLowerCase().includes(termo.toLowerCase())) {
+          const item = document.createElement("li");
+          item.textContent = texto;
+          item.onclick = () => {
+            document.getElementById("btnBuscar").value = dados.cpf; // preenche input com CPF
+            buscarPontos(dados.cpf);
+            lista.innerHTML = "";
+          };
+          lista.appendChild(item);
+        }
+      });
+    }
+
+    async function buscarPontos(cpf) {
+      ultimoCPF = cpf; // salva cpf para exportar
+      const pontosRef = collection(db, "pontos");
+      const q = query(pontosRef, where("cpf", "==", cpf));
+      const querySnapshot = await getDocs(q);
+      const dados = [];
+      querySnapshot.forEach((doc) => {
+        dados.push({ id: doc.id, ...doc.data() });
+      });
+      ultimoPontos = dados; // salva dados para exportar
+      renderTabelaAgrupada(dados);
+    }
+
+    function renderTabelaAgrupada(pontos) {
+      const tabela = document.getElementById("tabela");
+      tabela.innerHTML = "";
+
+      const cabecalho = document.createElement("tr");
+      ["Data", "Entrada (Manhã)", "Saída (Almoço)", "Retorno (Almoço)", "Saída (Tarde)", "Ações"].forEach((t) => {
+        const th = document.createElement("th");
+        th.textContent = t;
+        cabecalho.appendChild(th);
+      });
+      tabela.appendChild(cabecalho);
+
+      const mapa = {};
+      pontos.forEach(p => {
+        if (!mapa[p.data]) {
+          mapa[p.data] = {
+            entrada_manha: { hora: "-", id: null },
+            saida_almoco: { hora: "-", id: null },
+            retorno_almoco: { hora: "-", id: null },
+            saida_tarde: { hora: "-", id: null }
+          };
+        }
+        if (mapa[p.data][p.tipo]) {
+          mapa[p.data][p.tipo] = { hora: p.hora, id: p.id, cpf: p.cpf };
+        }
+      });
+
+      Object.keys(mapa).sort().forEach(data => {
+        const pontoDia = mapa[data];
+        const row = document.createElement("tr");
+
+        [data, pontoDia.entrada_manha.hora, pontoDia.saida_almoco.hora, pontoDia.retorno_almoco.hora, pontoDia.saida_tarde.hora].forEach(valor => {
+          const td = document.createElement("td");
+          td.textContent = valor;
+          row.appendChild(td);
+        });
+
+        const tdAcoes = document.createElement("td");
+
+        ["entrada_manha", "saida_almoco", "retorno_almoco", "saida_tarde"].forEach(tipo => {
+          if (pontoDia[tipo].id) {
+            const btn = document.createElement("button");
+            btn.textContent = Editar ${tipo};
+            btn.style.margin = "2px";
+            btn.onclick = () => editarPonto({ ...pontoDia[tipo], tipo });
+            tdAcoes.appendChild(btn);
+          }
+        });
+
+        row.appendChild(tdAcoes);
+        tabela.appendChild(row);
+      });
+    }
+
+    async function editarPonto(ponto) {
+      const novaHora = prompt("Nova hora para " + ponto.tipo + ":", ponto.hora);
+      if (!novaHora) return;
+      const ref = doc(db, "pontos", ponto.id);
+      await updateDoc(ref, { hora: novaHora });
+      alert("Hora atualizada.");
+      buscarPontos(ponto.cpf);
+    }
+
+    // Função para exportar CSV (mantive igual sua versão)
+
+    async function exportarCSV() {
+      if (!ultimoCPF) {
+        alert("Busque um funcionário antes de exportar.");
+        return;
+      }
+
+      const qFunc = query(collection(db, "funcionarios"), where("cpf", "==", ultimoCPF));
+      const snapFunc = await getDocs(qFunc);
+      let nomeFuncionario = "Funcionário não encontrado";
+      snapFunc.forEach(doc => {
+        nomeFuncionario = doc.data().nome;
+      });
+
+      if (!ultimoPontos.length) {
+        alert("Nenhum ponto para exportar.");
+        return;
+      }
+
+      const mapa = {};
+      ultimoPontos.forEach(p => {
+        if (!mapa[p.data]) {
+          mapa[p.data] = {
+            entrada_manha: "-",
+            saida_almoco: "-",
+            retorno_almoco: "-",
+            saida_tarde: "-"
+          };
+        }
+        if (mapa[p.data][p.tipo] !== undefined) {
+          mapa[p.data][p.tipo] = p.hora;
+        }
+      });
+
+      let csvContent = "data:text/csv;charset=utf-8,";
+      csvContent += Nome do Funcionário:,${nomeFuncionario}\r\n;
+      csvContent += "Data,Entrada (Manhã),Saída (Almoço),Retorno (Almoço),Saída (Tarde)\r\n";
+
+      Object.keys(mapa).sort().forEach(data => {
+        const linha = [
+          data,
+          mapa[data].entrada_manha,
+          mapa[data].saida_almoco,
+          mapa[data].retorno_almoco,
+          mapa[data].saida_tarde
+        ].join(",");
+        csvContent += linha + "\r\n";
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", pontos_${nomeFuncionario.replace(/\s+/g, "_")}.csv);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    document.getElementById("btnBuscar").addEventListener("input", (e) => {
+      buscarFuncionarios(e.target.value.trim());
+    });
+
+    // Remove eventos antigos
+    // document.getElementById("btnCadastrar").addEventListener("click", cadastrarFuncionario);
+    // document.getElementById("btnExcluir").addEventListener("click", excluirFuncionario);
+
+    window.addEventListener("load", () => {
+      const btnExportar = document.createElement("button");
+      btnExportar.textContent = "Exportar para Excel";
+      btnExportar.style.margin = "8px";
+      btnExportar.onclick = exportarCSV;
+      document.getElementById("adminPanel").insertBefore(btnExportar, document.getElementById("tabela"));
+
+      // Criar botões que direcionam para páginas separadas
+      const btnCadastrar = document.createElement("button");
+      btnCadastrar.textContent = "Cadastrar Funcionário";
+      btnCadastrar.style.margin = "8px";
+      btnCadastrar.onclick = () => window.location.href = "cadastrar.html";
+
+      const btnExcluir = document.createElement("button");
+      btnExcluir.textContent = "Excluir Funcionário";
+      btnExcluir.style.margin = "8px";
+      btnExcluir.onclick = () => window.location.href = "excluir.html";
+
+      const adminPanel = document.getElementById("adminPanel");
+      adminPanel.insertBefore(btnCadastrar, btnExportar);
+      adminPanel.insertBefore(btnExcluir, btnExportar);
+    });
+
+    loginAdmin();
+  </script>
   <style>
-    body {
-      font-family: sans-serif;
-      background-color: #e8f0fe;
-      margin: 0;
-      padding: 0;
-    }
-    .container {
-      max-width: 1100px;
-      margin: 40px auto;
-      background: white;
-      padding: 25px 30px;
-      border-radius: 12px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.1);
-    }
-    h1 {
-      text-align: center;
-      color: #003366;
-      margin-bottom: 25px;
-    }
-    .filtros {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 20px;
-      position: relative;
-    }
-    .filtros input[type="text"],
-    .filtros input[type="month"] {
-      padding: 10px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      font-size: 1rem;
-      width: 200px;
-    }
-    #listaSugestoes {
-      position: absolute;
-      top: 42px;
-      left: 0;
-      width: 200px;
-      background: white;
-      border: 1px solid #ccc;
-      max-height: 200px;
-      overflow-y: auto;
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      z-index: 1000;
-    }
-    #listaSugestoes li {
-      padding: 8px;
-      cursor: pointer;
-    }
-    #listaSugestoes li:hover {
-      background-color: #f0f0f0;
-    }
-    .filtros button {
-      padding: 10px 15px;
-      border: none;
-      border-radius: 6px;
-      background-color: #4285f4;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background-color 0.3s;
-    }
-    .filtros button:hover {
-      background-color: #3367d6;
-    }
-    .acoes-barra {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 10px;
-      margin-top: 10px;
-      margin-bottom: 25px;
-    }
-    .acoes-barra a,
-    .acoes-barra button {
-      text-decoration: none;
-      padding: 10px 15px;
-      background-color: #4285f4;
-      color: white;
-      border-radius: 6px;
-      font-size: 0.95rem;
-      border: none;
-      cursor: pointer;
-      transition: background-color 0.3s;
-    }
-    .acoes-barra a:hover,
-    .acoes-barra button:hover {
-      background-color: #3367d6;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    th, td {
-      padding: 10px;
-      border: 1px solid #ccc;
-      text-align: center;
-    }
-    th {
-      background-color: #f2f2f2;
-    }
+    #adminPanel { display: none; }
+    ul#listaSugestoes { list-style: none; padding: 0; margin: 0; max-height: 120px; overflow-y: auto; border: 1px solid #ccc; width: 300px; }
+    ul#listaSugestoes li { padding: 6px; border-bottom: 1px solid #ccc; cursor: pointer; }
+    ul#listaSugestoes li:hover { background-color: #eee; }
+    button { cursor: pointer; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Painel Administrativo</h1>
-
-    <div class="filtros">
-      <div style="position:relative;">
-        <input type="text" id="buscaFuncionario" placeholder="Buscar por Nome/CPF" autocomplete="off" />
-        <ul id="listaSugestoes"></ul>
-      </div>
-      <input type="month" id="filtroMes" />
-      <button onclick="buscarPontos()">Buscar</button>
-    </div>
-
-    <div class="acoes-barra">
-      <a href="cadastrar.html">Cadastrar Funcionário</a>
-      <a href="editar.html">Editar Funcionário</a>
-      <a href="excluir.html">Excluir Funcionário</a>
-      <a href="editar-ponto.html">Editar Ponto</a>
-      <a href="adicionar-ponto.html">Adicionar Ponto</a>
-      <button onclick="exportarPDF()">Exportar PDF</button>
-    </div>
-
-    <table id="tabelaPontos">
-      <thead>
-        <tr>
-          <th colspan="7" id="nomeFuncionario">Funcionário: -</th>
-        </tr>
-        <tr>
-          <th>Data</th>
-          <th>Entrada (Manhã)</th>
-          <th>Saída (Almoço)</th>
-          <th>Retorno (Almoço)</th>
-          <th>Saída (Tarde)</th>
-          <th>Horas Trabalhadas</th>
-          <th>Horas Extras</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+  <h1>Painel de Administração - Meu Ponto</h1>
+  <div id="adminPanel">
+    <input type="text" id="btnBuscar" placeholder="Digite nome ou CPF" style="width: 300px; padding: 8px" />
+    <ul id="listaSugestoes"></ul>
+    <br />
+    <!-- Botões agora são criados pelo script -->
+    <table id="tabela"></table>
   </div>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, query, where, orderBy, getDocs, Timestamp, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyCuCbBesvbrOvdzdv1cmCF7M2uaaUfWRU0",
-      authDomain: "meupontoapp-d5d3b.firebaseapp.com",
-      databaseURL: "https://meupontoapp-d5d3b-default-rtdb.firebaseio.com",
-      projectId: "meupontoapp-d5d3b",
-      storageBucket: "meupontoapp-d5d3b.firebasestorage.app",
-      messagingSenderId: "700159340275",
-      appId: "1:700159340275:web:51094e94b4159521cf5186",
-      measurementId: "G-1TX8XYMSVK"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    const campoBusca = document.getElementById("buscaFuncionario");
-    const listaSugestoes = document.getElementById("listaSugestoes");
-
-    campoBusca.addEventListener("input", async () => {
-      const termo = campoBusca.value.trim().toLowerCase();
-      listaSugestoes.innerHTML = "";
-      if (termo.length < 2) return;
-
-      const q = query(
-        collection(db, "funcionarios"),
-        where("nomeLower", ">=", termo),
-        where("nomeLower", "<=", termo + "\uf8ff"),
-        orderBy("nomeLower"),
-        limit(10)
-      );
-
-      const snapshot = await getDocs(q);
-      snapshot.forEach(docSnap => {
-        const func = docSnap.data();
-        const li = document.createElement("li");
-        li.textContent = `${func.nome} (${func.cpf})`;
-        li.addEventListener("click", () => {
-          campoBusca.value = func.cpf;
-          listaSugestoes.innerHTML = "";
-        });
-        listaSugestoes.appendChild(li);
-      });
-    });
-
-    function calcularHoras(inicio, fim) {
-      if (!inicio || !fim) return 0;
-      const [h1, m1] = inicio.split(":").map(Number);
-      const [h2, m2] = fim.split(":").map(Number);
-      return (h2 * 60 + m2 - (h1 * 60 + m1)) / 60;
-    }
-
-    let dadosTabela = [];
-    let funcionarioSelecionado = "";
-
-    window.buscarPontos = async function () {
-      const cpf = campoBusca.value.trim();
-      const mes = document.getElementById("filtroMes").value;
-      if (!cpf || !mes) {
-        alert("Digite o CPF e selecione o mês!");
-        return;
-      }
-
-      funcionarioSelecionado = cpf;
-      document.getElementById("nomeFuncionario").innerText = "Funcionário (CPF): " + cpf;
-
-      const tbody = document.querySelector("#tabelaPontos tbody");
-      tbody.innerHTML = "";
-      dadosTabela = [];
-
-      const [ano, mesNum] = mes.split("-");
-      const inicioMes = new Date(ano, mesNum - 1, 1);
-      const fimMes = new Date(ano, mesNum, 0);
-
-      let q = query(
-        collection(db, "pontos"),
-        where("cpf", "==", cpf),
-        where("data", ">=", Timestamp.fromDate(inicioMes)),
-        where("data", "<=", Timestamp.fromDate(fimMes)),
-        orderBy("data", "asc")
-      );
-
-      let snapshot = await getDocs(q);
-
-      if (snapshot.empty) {
-        const dataInicio = `${ano}-${String(mesNum).padStart(2, '0')}-01`;
-        const dataFim = `${ano}-${String(mesNum).padStart(2, '0')}-${String(fimMes.getDate()).padStart(2, '0')}`;
-        q = query(
-          collection(db, "pontos"),
-          where("cpf", "==", cpf),
-          where("data", ">=", dataInicio),
-          where("data", "<=", dataFim),
-          orderBy("data", "asc")
-        );
-        snapshot = await getDocs(q);
-      }
-
-      snapshot.forEach(pDoc => {
-        const p = pDoc.data();
-        let dataFormatada = p.data instanceof Timestamp ? p.data.toDate().toISOString().split("T")[0] : p.data;
-
-        const horasManha = calcularHoras(p.entrada, p.saidaAlmoco);
-        const horasTarde = calcularHoras(p.retornoAlmoco, p.saida);
-        const totalDia = horasManha + horasTarde;
-        const extras = totalDia > 8 ? totalDia - 8 : 0;
-
-        dadosTabela.push({
-          data: dataFormatada,
-          entrada: p.entrada || "-",
-          almocoSaida: p.saidaAlmoco || "-",
-          almocoRetorno: p.retornoAlmoco || "-",
-          saida: p.saida || "-",
-          horas: totalDia.toFixed(2),
-          extras: extras.toFixed(2)
-        });
-
-        tbody.innerHTML += `
-          <tr>
-            <td>${dataFormatada}</td>
-            <td>${p.entrada || "-"}</td>
-            <td>${p.saidaAlmoco || "-"}</td>
-            <td>${p.retornoAlmoco || "-"}</td>
-            <td>${p.saida || "-"}</td>
-            <td>${totalDia.toFixed(2)}</td>
-            <td>${extras.toFixed(2)}</td>
-          </tr>
-        `;
-      });
-    };
-
-    window.exportarPDF = async function () {
-      if (dadosTabela.length === 0) {
-        alert("Nenhum dado para exportar!");
-        return;
-      }
-
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-
-      let totalHoras = 0;
-      let totalExtras = 0;
-
-      const linhas = dadosTabela.map(l => {
-        totalHoras += parseFloat(l.horas);
-        totalExtras += parseFloat(l.extras);
-        return [l.data, l.entrada, l.almocoSaida, l.almocoRetorno, l.saida, l.horas, l.extras];
-      });
-
-      doc.setFontSize(14);
-      doc.text("Relatório de Pontos", 14, 20);
-      doc.text("Funcionário (CPF): " + funcionarioSelecionado, 14, 28);
-
-      doc.autoTable({
-        head: [['Data','Entrada','Saída Almoço','Retorno','Saída','Horas Trabalhadas','Horas Extras']],
-        body: [...linhas, ["", "", "", "", "TOTAL", totalHoras.toFixed(2), totalExtras.toFixed(2)]],
-        startY: 35
-      });
-
-      const yFinal = doc.lastAutoTable.finalY + 10;
-      doc.setFontSize(12);
-      doc.text(`Total de Horas Trabalhadas no Mês: ${totalHoras.toFixed(2)}h`, 14, yFinal);
-      doc.text(`Total de Horas Extras no Mês: ${totalExtras.toFixed(2)}h`, 14, yFinal + 10);
-
-      doc.line(14, yFinal + 40, 100, yFinal + 40);
-      doc.text("Assinatura do Funcionário", 14, yFinal + 48);
-
-      doc.save(`relatorio-${funcionarioSelecionado}.pdf`);
-    };
-  </script>
 </body>
 </html>
+
+
