@@ -13,7 +13,7 @@
     }
 
     .container {
-      max-width: 1100px;
+      max-width: 1000px;
       margin: 40px auto;
       background: white;
       padding: 25px 30px;
@@ -134,13 +134,14 @@
   <div class="container">
     <h1>Painel Administrativo</h1>
 
+    <!-- Filtros -->
     <div class="filtros">
       <div class="autocomplete-container">
-        <input
-          type="text"
-          id="buscaFuncionario"
-          placeholder="Buscar por nome ou CPF"
-          autocomplete="off"
+        <input 
+          type="text" 
+          id="buscaFuncionario" 
+          placeholder="Buscar por nome ou CPF" 
+          autocomplete="off" 
         />
         <div id="sugestoes" class="autocomplete-box"></div>
       </div>
@@ -150,6 +151,7 @@
       <button onclick="buscarPontos()">Buscar</button>
     </div>
 
+    <!-- Opções administrativas -->
     <div class="acoes-barra">
       <a href="cadastrar.html">Cadastrar Funcionário</a>
       <a href="editar.html">Editar Funcionário</a>
@@ -159,10 +161,11 @@
       <button onclick="exportarPDF()">Exportar PDF</button>
     </div>
 
+    <!-- Tabela -->
     <table id="tabelaPontos">
       <thead>
         <tr>
-          <th colspan="7" id="nomeFuncionario">Funcionário: -</th>
+          <th colspan="5" id="nomeFuncionario">Funcionário: -</th>
         </tr>
         <tr>
           <th>Data</th>
@@ -170,8 +173,6 @@
           <th>Saída (Almoço)</th>
           <th>Retorno (Almoço)</th>
           <th>Saída (Tarde)</th>
-          <th>Horas Trabalhadas</th>
-          <th>Horas Extras</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -181,107 +182,6 @@
   <!-- Bibliotecas jsPDF e AutoTable -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-
-  <script>
-    // Função auxiliar para calcular diferença de horas
-    function calcularHoras(inicio, fim) {
-      if (!inicio || !fim) return 0;
-      const [h1, m1] = inicio.split(":").map(Number);
-      const [h2, m2] = fim.split(":").map(Number);
-      return (h2*60+m2 - (h1*60+m1)) / 60;
-    }
-
-    // variáveis globais
-    let dadosTabela = [];
-    let funcionarioSelecionado = "";
-
-    function buscarPontos() {
-      const tbody = document.querySelector("#tabelaPontos tbody");
-      tbody.innerHTML = "";
-
-      // pega o nome/cpf digitado
-      funcionarioSelecionado = document.getElementById("buscaFuncionario").value || "-";
-      document.getElementById("nomeFuncionario").innerText = "Funcionário: " + funcionarioSelecionado;
-
-      // Exemplo de dados simulados
-      const pontos = [
-        {data:"2025-08-01", entrada:"08:00", almocoSaida:"12:00", almocoRetorno:"13:00", saida:"17:30"},
-        {data:"2025-08-02", entrada:"08:15", almocoSaida:"12:05", almocoRetorno:"13:00", saida:"18:20"},
-        {data:"2025-08-03", entrada:"08:10", almocoSaida:"12:00", almocoRetorno:"13:15", saida:"17:00"}
-      ];
-
-      dadosTabela = []; // limpa array global
-
-      pontos.forEach(p => {
-        const horasManha = calcularHoras(p.entrada, p.almocoSaida);
-        const horasTarde = calcularHoras(p.almocoRetorno, p.saida);
-        const totalDia = horasManha + horasTarde;
-        const extras = totalDia > 8 ? (totalDia - 8) : 0;
-
-        const linha = {
-          data: p.data,
-          entrada: p.entrada,
-          almocoSaida: p.almocoSaida,
-          almocoRetorno: p.almocoRetorno,
-          saida: p.saida,
-          horas: totalDia.toFixed(2),
-          extras: extras.toFixed(2)
-        };
-        dadosTabela.push(linha);
-
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${linha.data}</td>
-          <td>${linha.entrada}</td>
-          <td>${linha.almocoSaida}</td>
-          <td>${linha.almocoRetorno}</td>
-          <td>${linha.saida}</td>
-          <td>${linha.horas}</td>
-          <td>${linha.extras}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    async function exportarPDF() {
-      if (dadosTabela.length === 0) {
-        alert("Nenhum dado para exportar!");
-        return;
-      }
-
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-
-      let totalHoras = 0;
-      let totalExtras = 0;
-
-      const linhas = dadosTabela.map(l => {
-        totalHoras += parseFloat(l.horas);
-        totalExtras += parseFloat(l.extras);
-        return [l.data, l.entrada, l.almocoSaida, l.almocoRetorno, l.saida, l.horas, l.extras];
-      });
-
-      doc.setFontSize(14);
-      doc.text("Relatório de Pontos", 14, 20);
-      doc.text("Funcionário: " + funcionarioSelecionado, 14, 28);
-
-      doc.autoTable({
-        head: [['Data','Entrada','Saída Almoço','Retorno','Saída','Horas Trabalhadas','Horas Extras']],
-        body: linhas,
-        startY: 35
-      });
-
-      const yFinal = doc.lastAutoTable.finalY + 10;
-      doc.setFontSize(12);
-      doc.text(`Total de Horas Trabalhadas no Mês: ${totalHoras.toFixed(2)}h`, 14, yFinal);
-      doc.text(`Total de Horas Extras no Mês: ${totalExtras.toFixed(2)}h`, 14, yFinal+10);
-
-      // Linha de assinatura
-      doc.line(14, yFinal+40, 100, yFinal+40);
-      doc.text("Assinatura do Funcionário", 14, yFinal+48);
-
-      doc.save(`relatorio-${funcionarioSelecionado}.pdf`);
-    }
-  </script>
+  <script type="module" src="script.js"></script>
 </body>
 </html>
