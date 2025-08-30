@@ -13,7 +13,7 @@
     }
 
     .container {
-      max-width: 1000px;
+      max-width: 1100px;
       margin: 40px auto;
       background: white;
       padding: 25px 30px;
@@ -88,32 +88,6 @@
       background-color: #3367d6;
     }
 
-    .autocomplete-container {
-      position: relative;
-    }
-
-    .autocomplete-box {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      background: white;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      max-height: 150px;
-      overflow-y: auto;
-      z-index: 10;
-    }
-
-    .autocomplete-box div {
-      padding: 8px;
-      cursor: pointer;
-    }
-
-    .autocomplete-box div:hover {
-      background-color: #f1f1f1;
-    }
-
     table {
       width: 100%;
       border-collapse: collapse;
@@ -134,24 +108,12 @@
   <div class="container">
     <h1>Painel Administrativo</h1>
 
-    <!-- Filtros -->
     <div class="filtros">
-      <div class="autocomplete-container">
-        <input 
-          type="text" 
-          id="buscaFuncionario" 
-          placeholder="Buscar por nome ou CPF" 
-          autocomplete="off" 
-        />
-        <div id="sugestoes" class="autocomplete-box"></div>
-      </div>
-
-      <input type="date" id="filtroData" />
+      <input type="text" id="buscaFuncionario" placeholder="Buscar por CPF" />
       <input type="month" id="filtroMes" />
       <button onclick="buscarPontos()">Buscar</button>
     </div>
 
-    <!-- Opções administrativas -->
     <div class="acoes-barra">
       <a href="cadastrar.html">Cadastrar Funcionário</a>
       <a href="editar.html">Editar Funcionário</a>
@@ -161,11 +123,10 @@
       <button onclick="exportarPDF()">Exportar PDF</button>
     </div>
 
-    <!-- Tabela -->
     <table id="tabelaPontos">
       <thead>
         <tr>
-          <th colspan="5" id="nomeFuncionario">Funcionário: -</th>
+          <th colspan="7" id="nomeFuncionario">Funcionário: -</th>
         </tr>
         <tr>
           <th>Data</th>
@@ -173,15 +134,142 @@
           <th>Saída (Almoço)</th>
           <th>Retorno (Almoço)</th>
           <th>Saída (Tarde)</th>
+          <th>Horas Trabalhadas</th>
+          <th>Horas Extras</th>
         </tr>
       </thead>
       <tbody></tbody>
     </table>
   </div>
 
-  <!-- Bibliotecas jsPDF e AutoTable -->
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <!-- jsPDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-  <script type="module" src="script.js"></script>
+
+  <script>
+    // === CONFIG FIREBASE ===
+    const firebaseConfig = {
+      apiKey: "SUA_API_KEY",
+      authDomain: "SEU_AUTH_DOMAIN",
+      projectId: "SEU_PROJECT_ID",
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Auxiliar: calcular diferença de horas
+    function calcularHoras(inicio, fim) {
+      if (!inicio || !fim) return 0;
+      const [h1, m1] = inicio.split(":").map(Number);
+      const [h2, m2] = fim.split(":").map(Number);
+      return (h2 * 60 + m2 - (h1 * 60 + m1)) / 60;
+    }
+
+    let dadosTabela = [];
+    let funcionarioSelecionado = "";
+
+    async function buscarPontos() {
+      const cpf = document.getElementById("buscaFuncionario").value.trim();
+      const mes = document.getElementById("filtroMes").value;
+      if (!cpf || !mes) {
+        alert("Digite o CPF e selecione o mês!");
+        return;
+      }
+
+      funcionarioSelecionado = cpf;
+      document.getElementById("nomeFuncionario").innerText = "Funcionário: " + cpf;
+
+      const tbody = document.querySelector("#tabelaPontos tbody");
+      tbody.innerHTML = "";
+      dadosTabela = [];
+
+      const [ano, mesNum] = mes.split("-");
+      const inicioMes = new Date(ano, mesNum - 1, 1);
+      const fimMes = new Date(ano, mesNum, 0);
+
+      const snapshot = await db.collection("pontos")
+        .where("cpf", "==", cpf)
+        .where("data", ">=", inicioMes.toISOString().split("T")[0])
+        .where("data", "<=", fimMes.toISOString().split("T")[0])
+        .orderBy("data", "asc")
+        .get();
+
+      snapshot.forEach(doc => {
+        const p = doc.data();
+        const horasManha = calcularHoras(p.entrada, p.saidaAlmoco);
+        const horasTarde = calcularHoras(p.retornoAlmoco, p.saida);
+        const totalDia = horasManha + horasTarde;
+        const extras = totalDia > 8 ? totalDia - 8 : 0;
+
+        const linha = {
+          data: p.data,
+          entrada: p.entrada || "-",
+          almocoSaida: p.saidaAlmoco || "-",
+          almocoRetorno: p.retornoAlmoco || "-",
+          saida: p.saida || "-",
+          horas: totalDia.toFixed(2),
+          extras: extras.toFixed(2)
+        };
+
+        dadosTabela.push(linha);
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${linha.data}</td>
+          <td>${linha.entrada}</td>
+          <td>${linha.almocoSaida}</td>
+          <td>${linha.almocoRetorno}</td>
+          <td>${linha.saida}</td>
+          <td>${linha.horas}</td>
+          <td>${linha.extras}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function exportarPDF() {
+      if (dadosTabela.length === 0) {
+        alert("Nenhum dado para exportar!");
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      let totalHoras = 0;
+      let totalExtras = 0;
+
+      const linhas = dadosTabela.map(l => {
+        totalHoras += parseFloat(l.horas);
+        totalExtras += parseFloat(l.extras);
+        return [l.data, l.entrada, l.almocoSaida, l.almocoRetorno, l.saida, l.horas, l.extras];
+      });
+
+      doc.setFontSize(14);
+      doc.text("Relatório de Pontos", 14, 20);
+      doc.text("Funcionário (CPF): " + funcionarioSelecionado, 14, 28);
+
+      doc.autoTable({
+        head: [['Data','Entrada','Saída Almoço','Retorno','Saída','Horas Trabalhadas','Horas Extras']],
+        body: linhas,
+        startY: 35
+      });
+
+      const yFinal = doc.lastAutoTable.finalY + 10;
+      doc.setFontSize(12);
+      doc.text(`Total de Horas Trabalhadas no Mês: ${totalHoras.toFixed(2)}h`, 14, yFinal);
+      doc.text(`Total de Horas Extras no Mês: ${totalExtras.toFixed(2)}h`, 14, yFinal + 10);
+
+      // Linha de assinatura
+      doc.line(14, yFinal + 40, 100, yFinal + 40);
+      doc.text("Assinatura do Funcionário", 14, yFinal + 48);
+
+      doc.save(`relatorio-${funcionarioSelecionado}.pdf`);
+    }
+  </script>
 </body>
 </html>
+
