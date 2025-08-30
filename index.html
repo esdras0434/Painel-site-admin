@@ -2,185 +2,268 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Painel Admin - Meu Ponto</title>
+  <title>Painel de Pontos</title>
   <link rel="stylesheet" href="style.css" />
-  <script type="module" src="firebase-config.js"></script>
   <style>
-    #adminPanel { display: none; }
-    ul#listaSugestoes { 
-      list-style: none; 
-      padding: 0; 
-      margin: 0; 
-      max-height: 150px; 
-      overflow-y: auto; 
-      border: 1px solid #ccc; 
-      width: 300px; 
-      background: white; 
-      position: absolute; 
-      z-index: 999; 
+    body {
+      font-family: sans-serif;
+      background-color: #e8f0fe;
+      margin: 0;
+      padding: 0;
     }
-    ul#listaSugestoes li { 
-      padding: 6px; 
-      border-bottom: 1px solid #ccc; 
-      cursor: pointer; 
+
+    .container {
+      max-width: 1000px;
+      max-width: 1100px;
+      margin: 40px auto;
+      background: white;
+      padding: 25px 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
     }
-    ul#listaSugestoes li:hover { 
-      background-color: #eee; 
+
+    h1 {
+      text-align: center;
+      color: #003366;
+      margin-bottom: 25px;
     }
-    button { cursor: pointer; }
-    .input-container { position: relative; display: inline-block; }
+
+    .filtros {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .filtros input[type="text"],
+    .filtros input[type="date"],
+    .filtros input[type="month"] {
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+      width: 200px;
+    }
+
+    .filtros button {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 6px;
+      background-color: #4285f4;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .filtros button:hover {
+      background-color: #3367d6;
+    }
+
+    .acoes-barra {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+      margin-bottom: 25px;
+    }
+
+    .acoes-barra a,
+    .acoes-barra button {
+      text-decoration: none;
+      padding: 10px 15px;
+      background-color: #4285f4;
+      color: white;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .acoes-barra a:hover,
+    .acoes-barra button:hover {
+      background-color: #3367d6;
+    }
+
+    .autocomplete-container {
+      position: relative;
+    }
+
+    .autocomplete-box {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      max-height: 150px;
+      overflow-y: auto;
+      z-index: 10;
+    }
+
+    .autocomplete-box div {
+      padding: 8px;
+      cursor: pointer;
+    }
+
+    .autocomplete-box div:hover {
+      background-color: #f1f1f1;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 10px;
+      border: 1px solid #ccc;
+      text-align: center;
+    }
+
+    th {
+      background-color: #f2f2f2;
+    }
   </style>
 </head>
 <body>
-  <h1>Painel de Administração - Meu Ponto</h1>
-  <div id="adminPanel">
-    <div class="input-container">
-      <input type="text" id="btnBuscar" placeholder="Digite nome ou CPF" style="width: 300px; padding: 8px" />
-      <ul id="listaSugestoes"></ul>
+  <div class="container">
+    <h1>Painel Administrativo</h1>
+
+    <div class="filtros">
+      <div class="autocomplete-container">
+        <input
+          type="text"
+          id="buscaFuncionario"
+          placeholder="Buscar por nome ou CPF"
+          autocomplete="off"
+        />
+        <div id="sugestoes" class="autocomplete-box"></div>
+      </div>
+
+      <input type="date" id="filtroData" />
+      <input type="month" id="filtroMes" />
+      <button onclick="buscarPontos()">Buscar</button>
     </div>
-    <br /><br />
-    <table id="tabela"></table>
+
+    <!-- Opções administrativas abaixo da pesquisa -->
+    <div class="acoes-barra">
+      <a href="cadastrar.html">Cadastrar Funcionário</a>
+      <a href="editar.html">Editar Funcionário</a>
+      <a href="excluir.html">Excluir Funcionário</a>
+      <a href="editar-ponto.html">Editar Ponto</a>
+      <a href="adicionar-ponto.html">Adicionar Ponto</a>
+      <button onclick="exportarPDF()">Exportar PDF</button>
+    </div>
+
+    <table id="tabelaPontos">
+      <thead>
+        <tr>
+          <th colspan="5" id="nomeFuncionario">Funcionário: -</th>
+          <th colspan="7" id="nomeFuncionario">Funcionário: -</th>
+        </tr>
+        <tr>
+          <th>Data</th>
+          <th>Entrada (Manhã)</th>
+          <th>Saída (Almoço)</th>
+          <th>Retorno (Almoço)</th>
+          <th>Saída (Tarde)</th>
+          <th>Horas Trabalhadas</th>
+          <th>Horas Extras</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </div>
 
-  <script type="module">
-    import { db } from './firebase-config.js';
-    import { collection, query, where, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  <!-- Bibliotecas jsPDF e AutoTable -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
-    let adminLogado = false;
-    let ultimoCPF = null;
-    let ultimoPontos = [];
-
-    async function loginAdmin() {
-      const senha = prompt("Digite a senha de administrador:");
-      if (senha === "admin123") {
-        adminLogado = true;
-        document.getElementById("adminPanel").style.display = "block";
-      } else {
-        alert("Senha incorreta!");
-      }
+  <script type="module" src="script.js"></script>
+  <script>
+    // Função auxiliar para calcular diferença de horas
+    function calcularHoras(inicio, fim) {
+      if (!inicio || !fim) return 0;
+      const [h1, m1] = inicio.split(":").map(Number);
+      const [h2, m2] = fim.split(":").map(Number);
+      return (h2*60+m2 - (h1*60+m1)) / 60;
     }
 
-    async function buscarFuncionarios(termo) {
-      const lista = document.getElementById("listaSugestoes");
-      lista.innerHTML = "";
+    function buscarPontos() {
+      const tbody = document.querySelector("#tabelaPontos tbody");
+      tbody.innerHTML = "";
 
-      if (!termo) {
-        lista.style.display = "none";
-        return;
-      }
+      // Exemplo de dados simulados
+      const pontos = [
+        {data:"2025-08-01", entrada:"08:00", almocoSaida:"12:00", almocoRetorno:"13:00", saida:"17:30"},
+        {data:"2025-08-02", entrada:"08:15", almocoSaida:"12:05", almocoRetorno:"13:00", saida:"18:20"},
+        {data:"2025-08-03", entrada:"08:10", almocoSaida:"12:00", almocoRetorno:"13:15", saida:"17:00"}
+      ];
 
-      const funcionariosRef = collection(db, "funcionarios");
-      const snapshot = await getDocs(funcionariosRef);
-      let encontrou = false;
-
-      snapshot.forEach(docSnap => {
-        const dados = docSnap.data();
-        const texto = `${dados.nome} - ${dados.cpf}`;
-        if (texto.toLowerCase().includes(termo.toLowerCase())) {
-          encontrou = true;
-          const item = document.createElement("li");
-          item.textContent = texto;
-          item.onclick = () => {
-            document.getElementById("btnBuscar").value = dados.cpf;
-            buscarPontos(dados.cpf);
-            lista.innerHTML = "";
-            lista.style.display = "none";
-          };
-          lista.appendChild(item);
-        }
-      });
-
-      lista.style.display = encontrou ? "block" : "none";
-    }
-
-    async function buscarPontos(cpf) {
-      ultimoCPF = cpf;
-      const pontosRef = collection(db, "pontos");
-      const q = query(pontosRef, where("cpf", "==", cpf));
-      const querySnapshot = await getDocs(q);
-      const dados = [];
-      querySnapshot.forEach(doc => {
-        dados.push({ id: doc.id, ...doc.data() });
-      });
-      ultimoPontos = dados;
-      renderTabelaAgrupada(dados);
-    }
-
-    function renderTabelaAgrupada(pontos) {
-      const tabela = document.getElementById("tabela");
-      tabela.innerHTML = "";
-
-      const cabecalho = document.createElement("tr");
-      ["Data", "Entrada (Manhã)", "Saída (Almoço)", "Retorno (Almoço)", "Saída (Tarde)", "Ações"].forEach((t) => {
-        const th = document.createElement("th");
-        th.textContent = t;
-        cabecalho.appendChild(th);
-      });
-      tabela.appendChild(cabecalho);
-
-      const mapa = {};
       pontos.forEach(p => {
-        if (!mapa[p.data]) {
-          mapa[p.data] = {
-            entrada_manha: { hora: "-", id: null },
-            saida_almoco: { hora: "-", id: null },
-            retorno_almoco: { hora: "-", id: null },
-            saida_tarde: { hora: "-", id: null }
-          };
-        }
-        if (mapa[p.data][p.tipo]) {
-          mapa[p.data][p.tipo] = { hora: p.hora, id: p.id, cpf: p.cpf };
-        }
-      });
+        const horasManha = calcularHoras(p.entrada, p.almocoSaida);
+        const horasTarde = calcularHoras(p.almocoRetorno, p.saida);
+        const totalDia = horasManha + horasTarde;
+        const extras = totalDia > 8 ? (totalDia - 8) : 0;
 
-      Object.keys(mapa).sort().forEach(data => {
-        const pontoDia = mapa[data];
-        const row = document.createElement("tr");
-
-        [data, pontoDia.entrada_manha.hora, pontoDia.saida_almoco.hora, pontoDia.retorno_almoco.hora, pontoDia.saida_tarde.hora].forEach(valor => {
-          const td = document.createElement("td");
-          td.textContent = valor;
-          row.appendChild(td);
-        });
-
-        const tdAcoes = document.createElement("td");
-
-        ["entrada_manha", "saida_almoco", "retorno_almoco", "saida_tarde"].forEach(tipo => {
-          if (pontoDia[tipo].id) {
-            const btn = document.createElement("button");
-            btn.textContent = `Editar ${tipo}`;
-            btn.style.margin = "2px";
-            btn.onclick = () => editarPonto({ ...pontoDia[tipo], tipo });
-            tdAcoes.appendChild(btn);
-          }
-        });
-
-        row.appendChild(tdAcoes);
-        tabela.appendChild(row);
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${p.data}</td>
+          <td>${p.entrada}</td>
+          <td>${p.almocoSaida}</td>
+          <td>${p.almocoRetorno}</td>
+          <td>${p.saida}</td>
+          <td>${totalDia.toFixed(2)}</td>
+          <td>${extras.toFixed(2)}</td>
+        `;
+        tbody.appendChild(tr);
       });
     }
 
-    async function editarPonto(ponto) {
-      const novaHora = prompt("Nova hora para " + ponto.tipo + ":", ponto.hora);
-      if (!novaHora) return;
-      const ref = doc(db, "pontos", ponto.id);
-      await updateDoc(ref, { hora: novaHora });
-      alert("Hora atualizada.");
-      buscarPontos(ponto.cpf);
+    async function exportarPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      const tabela = document.querySelector("#tabelaPontos");
+      let totalHoras = 0;
+      let totalExtras = 0;
+
+      const linhas = [];
+      tabela.querySelectorAll("tbody tr").forEach(tr => {
+        const tds = tr.querySelectorAll("td");
+        const linha = Array.from(tds).map(td => td.textContent);
+        linhas.push(linha);
+
+        totalHoras += parseFloat(tds[5].textContent);
+        totalExtras += parseFloat(tds[6].textContent);
+      });
+
+      doc.setFontSize(14);
+      doc.text("Relatório de Pontos", 14, 20);
+
+      doc.autoTable({
+        head: [['Data','Entrada','Saída Almoço','Retorno','Saída','Horas Trabalhadas','Horas Extras']],
+        body: linhas,
+        startY: 30
+      });
+
+      const yFinal = doc.lastAutoTable.finalY + 10;
+      doc.setFontSize(12);
+      doc.text(`Total de Horas Trabalhadas no Mês: ${totalHoras.toFixed(2)}h`, 14, yFinal);
+      doc.text(`Total de Horas Extras no Mês: ${totalExtras.toFixed(2)}h`, 14, yFinal+10);
+
+      // Linha de assinatura
+      doc.line(14, yFinal+40, 100, yFinal+40);
+      doc.text("Assinatura do Funcionário", 14, yFinal+48);
+
+      doc.save("relatorio-pontos.pdf");
     }
-
-    document.getElementById("btnBuscar").addEventListener("input", (e) => {
-      buscarFuncionarios(e.target.value.trim());
-    });
-
-    window.addEventListener("click", (e) => {
-      if (!document.querySelector(".input-container").contains(e.target)) {
-        document.getElementById("listaSugestoes").style.display = "none";
-      }
-    });
-
-    loginAdmin();
   </script>
 </body>
 </html>
