@@ -6,11 +6,46 @@
   <title>Painel Admin - Meu Ponto</title>
   <link rel="stylesheet" href="style.css" />
   <script type="module" src="firebase-config.js"></script>
+  <style>
+    #adminPanel { display: none; }
+    ul#listaSugestoes { 
+      list-style: none; 
+      padding: 0; 
+      margin: 0; 
+      max-height: 150px; 
+      overflow-y: auto; 
+      border: 1px solid #ccc; 
+      width: 300px; 
+      background: white; 
+      position: absolute; 
+      z-index: 999; 
+    }
+    ul#listaSugestoes li { 
+      padding: 6px; 
+      border-bottom: 1px solid #ccc; 
+      cursor: pointer; 
+    }
+    ul#listaSugestoes li:hover { 
+      background-color: #eee; 
+    }
+    button { cursor: pointer; }
+    .input-container { position: relative; display: inline-block; }
+  </style>
+</head>
+<body>
+  <h1>Painel de Administração - Meu Ponto</h1>
+  <div id="adminPanel">
+    <div class="input-container">
+      <input type="text" id="btnBuscar" placeholder="Digite nome ou CPF" style="width: 300px; padding: 8px" />
+      <ul id="listaSugestoes"></ul>
+    </div>
+    <br /><br />
+    <table id="tabela"></table>
+  </div>
+
   <script type="module">
     import { db } from './firebase-config.js';
-    import {
-      collection, query, where, getDocs, doc
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { collection, query, where, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     let adminLogado = false;
     let ultimoCPF = null;
@@ -27,37 +62,48 @@
     }
 
     async function buscarFuncionarios(termo) {
-      const funcionariosRef = collection(db, "funcionarios");
-      const snapshot = await getDocs(funcionariosRef);
       const lista = document.getElementById("listaSugestoes");
       lista.innerHTML = "";
 
-      snapshot.forEach(doc => {
-        const dados = doc.data();
-        const texto = ${dados.nome} - ${dados.cpf};
+      if (!termo) {
+        lista.style.display = "none";
+        return;
+      }
+
+      const funcionariosRef = collection(db, "funcionarios");
+      const snapshot = await getDocs(funcionariosRef);
+      let encontrou = false;
+
+      snapshot.forEach(docSnap => {
+        const dados = docSnap.data();
+        const texto = `${dados.nome} - ${dados.cpf}`;
         if (texto.toLowerCase().includes(termo.toLowerCase())) {
+          encontrou = true;
           const item = document.createElement("li");
           item.textContent = texto;
           item.onclick = () => {
-            document.getElementById("btnBuscar").value = dados.cpf; // preenche input com CPF
+            document.getElementById("btnBuscar").value = dados.cpf;
             buscarPontos(dados.cpf);
             lista.innerHTML = "";
+            lista.style.display = "none";
           };
           lista.appendChild(item);
         }
       });
+
+      lista.style.display = encontrou ? "block" : "none";
     }
 
     async function buscarPontos(cpf) {
-      ultimoCPF = cpf; // salva cpf para exportar
+      ultimoCPF = cpf;
       const pontosRef = collection(db, "pontos");
       const q = query(pontosRef, where("cpf", "==", cpf));
       const querySnapshot = await getDocs(q);
       const dados = [];
-      querySnapshot.forEach((doc) => {
+      querySnapshot.forEach(doc => {
         dados.push({ id: doc.id, ...doc.data() });
       });
-      ultimoPontos = dados; // salva dados para exportar
+      ultimoPontos = dados;
       renderTabelaAgrupada(dados);
     }
 
@@ -103,7 +149,7 @@
         ["entrada_manha", "saida_almoco", "retorno_almoco", "saida_tarde"].forEach(tipo => {
           if (pontoDia[tipo].id) {
             const btn = document.createElement("button");
-            btn.textContent = Editar ${tipo};
+            btn.textContent = `Editar ${tipo}`;
             btn.style.margin = "2px";
             btn.onclick = () => editarPonto({ ...pontoDia[tipo], tipo });
             tdAcoes.appendChild(btn);
@@ -124,116 +170,17 @@
       buscarPontos(ponto.cpf);
     }
 
-    // Função para exportar CSV (mantive igual sua versão)
-
-    async function exportarCSV() {
-      if (!ultimoCPF) {
-        alert("Busque um funcionário antes de exportar.");
-        return;
-      }
-
-      const qFunc = query(collection(db, "funcionarios"), where("cpf", "==", ultimoCPF));
-      const snapFunc = await getDocs(qFunc);
-      let nomeFuncionario = "Funcionário não encontrado";
-      snapFunc.forEach(doc => {
-        nomeFuncionario = doc.data().nome;
-      });
-
-      if (!ultimoPontos.length) {
-        alert("Nenhum ponto para exportar.");
-        return;
-      }
-
-      const mapa = {};
-      ultimoPontos.forEach(p => {
-        if (!mapa[p.data]) {
-          mapa[p.data] = {
-            entrada_manha: "-",
-            saida_almoco: "-",
-            retorno_almoco: "-",
-            saida_tarde: "-"
-          };
-        }
-        if (mapa[p.data][p.tipo] !== undefined) {
-          mapa[p.data][p.tipo] = p.hora;
-        }
-      });
-
-      let csvContent = "data:text/csv;charset=utf-8,";
-      csvContent += Nome do Funcionário:,${nomeFuncionario}\r\n;
-      csvContent += "Data,Entrada (Manhã),Saída (Almoço),Retorno (Almoço),Saída (Tarde)\r\n";
-
-      Object.keys(mapa).sort().forEach(data => {
-        const linha = [
-          data,
-          mapa[data].entrada_manha,
-          mapa[data].saida_almoco,
-          mapa[data].retorno_almoco,
-          mapa[data].saida_tarde
-        ].join(",");
-        csvContent += linha + "\r\n";
-      });
-
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
-      link.setAttribute("download", pontos_${nomeFuncionario.replace(/\s+/g, "_")}.csv);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-
     document.getElementById("btnBuscar").addEventListener("input", (e) => {
       buscarFuncionarios(e.target.value.trim());
     });
 
-    // Remove eventos antigos
-    // document.getElementById("btnCadastrar").addEventListener("click", cadastrarFuncionario);
-    // document.getElementById("btnExcluir").addEventListener("click", excluirFuncionario);
-
-    window.addEventListener("load", () => {
-      const btnExportar = document.createElement("button");
-      btnExportar.textContent = "Exportar para Excel";
-      btnExportar.style.margin = "8px";
-      btnExportar.onclick = exportarCSV;
-      document.getElementById("adminPanel").insertBefore(btnExportar, document.getElementById("tabela"));
-
-      // Criar botões que direcionam para páginas separadas
-      const btnCadastrar = document.createElement("button");
-      btnCadastrar.textContent = "Cadastrar Funcionário";
-      btnCadastrar.style.margin = "8px";
-      btnCadastrar.onclick = () => window.location.href = "cadastrar.html";
-
-      const btnExcluir = document.createElement("button");
-      btnExcluir.textContent = "Excluir Funcionário";
-      btnExcluir.style.margin = "8px";
-      btnExcluir.onclick = () => window.location.href = "excluir.html";
-
-      const adminPanel = document.getElementById("adminPanel");
-      adminPanel.insertBefore(btnCadastrar, btnExportar);
-      adminPanel.insertBefore(btnExcluir, btnExportar);
+    window.addEventListener("click", (e) => {
+      if (!document.querySelector(".input-container").contains(e.target)) {
+        document.getElementById("listaSugestoes").style.display = "none";
+      }
     });
 
     loginAdmin();
   </script>
-  <style>
-    #adminPanel { display: none; }
-    ul#listaSugestoes { list-style: none; padding: 0; margin: 0; max-height: 120px; overflow-y: auto; border: 1px solid #ccc; width: 300px; }
-    ul#listaSugestoes li { padding: 6px; border-bottom: 1px solid #ccc; cursor: pointer; }
-    ul#listaSugestoes li:hover { background-color: #eee; }
-    button { cursor: pointer; }
-  </style>
-</head>
-<body>
-  <h1>Painel de Administração - Meu Ponto</h1>
-  <div id="adminPanel">
-    <input type="text" id="btnBuscar" placeholder="Digite nome ou CPF" style="width: 300px; padding: 8px" />
-    <ul id="listaSugestoes"></ul>
-    <br />
-    <!-- Botões agora são criados pelo script -->
-    <table id="tabela"></table>
-  </div>
 </body>
 </html>
-
-
