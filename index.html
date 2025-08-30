@@ -37,7 +37,6 @@
     }
 
     .filtros input[type="text"],
-    .filtros input[type="date"],
     .filtros input[type="month"] {
       padding: 10px;
       border-radius: 6px;
@@ -142,23 +141,30 @@
     </table>
   </div>
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-
   <!-- jsPDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
-  <script>
-    // === CONFIG FIREBASE ===
+  <!-- Firebase Modular v9+ -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, query, where, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // Configuração do Firebase
     const firebaseConfig = {
-      apiKey: "SUA_API_KEY",
-      authDomain: "SEU_AUTH_DOMAIN",
-      projectId: "SEU_PROJECT_ID",
+      apiKey: "AIzaSyCuCbBesvbrOvdzdv1cmCF7M2uaaUfWRU0",
+      authDomain: "meupontoapp-d5d3b.firebaseapp.com",
+      databaseURL: "https://meupontoapp-d5d3b-default-rtdb.firebaseio.com",
+      projectId: "meupontoapp-d5d3b",
+      storageBucket: "meupontoapp-d5d3b.firebasestorage.app",
+      messagingSenderId: "700159340275",
+      appId: "1:700159340275:web:51094e94b4159521cf5186",
+      measurementId: "G-1TX8XYMSVK"
     };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+
+    // Inicializar Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
     // Auxiliar: calcular diferença de horas
     function calcularHoras(inicio, fim) {
@@ -171,7 +177,7 @@
     let dadosTabela = [];
     let funcionarioSelecionado = "";
 
-    async function buscarPontos() {
+    window.buscarPontos = async function () {
       const cpf = document.getElementById("buscaFuncionario").value.trim();
       const mes = document.getElementById("filtroMes").value;
       if (!cpf || !mes) {
@@ -180,7 +186,7 @@
       }
 
       funcionarioSelecionado = cpf;
-      document.getElementById("nomeFuncionario").innerText = "Funcionário: " + cpf;
+      document.getElementById("nomeFuncionario").innerText = "Funcionário (CPF): " + cpf;
 
       const tbody = document.querySelector("#tabelaPontos tbody");
       tbody.innerHTML = "";
@@ -190,15 +196,18 @@
       const inicioMes = new Date(ano, mesNum - 1, 1);
       const fimMes = new Date(ano, mesNum, 0);
 
-      const snapshot = await db.collection("pontos")
-        .where("cpf", "==", cpf)
-        .where("data", ">=", inicioMes.toISOString().split("T")[0])
-        .where("data", "<=", fimMes.toISOString().split("T")[0])
-        .orderBy("data", "asc")
-        .get();
+      const q = query(
+        collection(db, "pontos"),
+        where("cpf", "==", cpf),
+        where("data", ">=", inicioMes.toISOString().split("T")[0]),
+        where("data", "<=", fimMes.toISOString().split("T")[0]),
+        orderBy("data", "asc")
+      );
 
-      snapshot.forEach(doc => {
-        const p = doc.data();
+      const snapshot = await getDocs(q);
+
+      snapshot.forEach(docSnap => {
+        const p = docSnap.data();
         const horasManha = calcularHoras(p.entrada, p.saidaAlmoco);
         const horasTarde = calcularHoras(p.retornoAlmoco, p.saida);
         const totalDia = horasManha + horasTarde;
@@ -228,9 +237,9 @@
         `;
         tbody.appendChild(tr);
       });
-    }
+    };
 
-    async function exportarPDF() {
+    window.exportarPDF = async function () {
       if (dadosTabela.length === 0) {
         alert("Nenhum dado para exportar!");
         return;
@@ -271,7 +280,7 @@
       doc.text("Assinatura do Funcionário", 14, yFinal + 48);
 
       doc.save(`relatorio-${funcionarioSelecionado}.pdf`);
-    }
+    };
   </script>
 </body>
 </html>
