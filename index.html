@@ -1,72 +1,216 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Relatório de Pontos</title>
+  <meta charset="UTF-8" />
+  <title>Painel de Pontos</title>
+  <link rel="stylesheet" href="style.css" />
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-    th { background: #f4f4f4; }
-    button { margin-top: 20px; padding: 10px 15px; }
+    body {
+      font-family: sans-serif;
+      background-color: #e8f0fe;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 1000px;
+      max-width: 1100px;
+      margin: 40px auto;
+      background: white;
+      padding: 25px 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      text-align: center;
+      color: #003366;
+      margin-bottom: 25px;
+    }
+
+    .filtros {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .filtros input[type="text"],
+    .filtros input[type="date"],
+    .filtros input[type="month"] {
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+      width: 200px;
+    }
+
+    .filtros button {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 6px;
+      background-color: #4285f4;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .filtros button:hover {
+      background-color: #3367d6;
+    }
+
+    .acoes-barra {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+      margin-bottom: 25px;
+    }
+
+    .acoes-barra a,
+    .acoes-barra button {
+      text-decoration: none;
+      padding: 10px 15px;
+      background-color: #4285f4;
+      color: white;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .acoes-barra a:hover,
+    .acoes-barra button:hover {
+      background-color: #3367d6;
+    }
+
+    .autocomplete-container {
+      position: relative;
+    }
+
+    .autocomplete-box {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      max-height: 150px;
+      overflow-y: auto;
+      z-index: 10;
+    }
+
+    .autocomplete-box div {
+      padding: 8px;
+      cursor: pointer;
+    }
+
+    .autocomplete-box div:hover {
+      background-color: #f1f1f1;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 10px;
+      border: 1px solid #ccc;
+      text-align: center;
+    }
+
+    th {
+      background-color: #f2f2f2;
+    }
   </style>
 </head>
 <body>
-  <h2>Relatório de Pontos</h2>
+  <div class="container">
+    <h1>Painel Administrativo</h1>
 
-  <table id="tabelaPontos">
-    <thead>
-      <tr>
-        <th>Data</th>
-        <th>Entrada</th>
-        <th>Saída Almoço</th>
-        <th>Retorno</th>
-        <th>Saída</th>
-        <th>Horas Trabalhadas</th>
-        <th>Horas Extras</th>
-        <th>Horas a Pagar</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+    <div class="filtros">
+      <div class="autocomplete-container">
+        <input
+          type="text"
+          id="buscaFuncionario"
+          placeholder="Buscar por nome ou CPF"
+          autocomplete="off"
+        />
+        <div id="sugestoes" class="autocomplete-box"></div>
+      </div>
 
-  <button onclick="exportarPDF()">Exportar PDF</button>
+      <input type="date" id="filtroData" />
+      <input type="month" id="filtroMes" />
+      <button onclick="buscarPontos()">Buscar</button>
+    </div>
+
+    <!-- Opções administrativas abaixo da pesquisa -->
+    <div class="acoes-barra">
+      <a href="cadastrar.html">Cadastrar Funcionário</a>
+      <a href="editar.html">Editar Funcionário</a>
+      <a href="excluir.html">Excluir Funcionário</a>
+      <a href="editar-ponto.html">Editar Ponto</a>
+      <a href="adicionar-ponto.html">Adicionar Ponto</a>
+      <button onclick="exportarPDF()">Exportar PDF</button>
+    </div>
+
+    <table id="tabelaPontos">
+      <thead>
+        <tr>
+          <th colspan="5" id="nomeFuncionario">Funcionário: -</th>
+          <th colspan="7" id="nomeFuncionario">Funcionário: -</th>
+        </tr>
+        <tr>
+          <th>Data</th>
+          <th>Entrada (Manhã)</th>
+          <th>Saída (Almoço)</th>
+          <th>Retorno (Almoço)</th>
+          <th>Saída (Tarde)</th>
+          <th>Horas Trabalhadas</th>
+          <th>Horas Extras</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
   <!-- Bibliotecas jsPDF e AutoTable -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
+  <script type="module" src="script.js"></script>
   <script>
-    // Função auxiliar para calcular diferença de horas com segundos
+    // Função auxiliar para calcular diferença de horas
     function calcularHoras(inicio, fim) {
-      if (!inicio || !fim || inicio === "-" || fim === "-") return 0;
-      const [h1, m1, s1] = inicio.split(":").map(Number);
-      const [h2, m2, s2] = fim.split(":").map(Number);
-      const inicioSeg = h1 * 3600 + m1 * 60 + (s1 || 0);
-      const fimSeg = h2 * 3600 + m2 * 60 + (s2 || 0);
-      return (fimSeg - inicioSeg) / 3600;
+      if (!inicio || !fim) return 0;
+      const [h1, m1] = inicio.split(":").map(Number);
+      const [h2, m2] = fim.split(":").map(Number);
+      return (h2*60+m2 - (h1*60+m1)) / 60;
     }
 
     function buscarPontos() {
       const tbody = document.querySelector("#tabelaPontos tbody");
       tbody.innerHTML = "";
 
-      // Exemplo de dados simulados (substituir pelos dados do sistema)
+      // Exemplo de dados simulados
       const pontos = [
-        {data:"2025-08-01", entrada:"08:00:00", almocoSaida:"12:00:00", almocoRetorno:"13:00:00", saida:"17:30:00"},
-        {data:"2025-08-02", entrada:"08:15:00", almocoSaida:"12:05:00", almocoRetorno:"13:00:00", saida:"18:20:00"},
-        {data:"2025-08-03", entrada:"08:10:00", almocoSaida:"12:00:00", almocoRetorno:"13:15:00", saida:"17:00:00"},
-        {data:"2025-08-04", entrada:"07:50:00", almocoSaida:"12:10:00", almocoRetorno:"13:05:00", saida:"19:10:00"}
+        {data:"2025-08-01", entrada:"08:00", almocoSaida:"12:00", almocoRetorno:"13:00", saida:"17:30"},
+        {data:"2025-08-02", entrada:"08:15", almocoSaida:"12:05", almocoRetorno:"13:00", saida:"18:20"},
+        {data:"2025-08-03", entrada:"08:10", almocoSaida:"12:00", almocoRetorno:"13:15", saida:"17:00"}
       ];
 
       pontos.forEach(p => {
         const horasManha = calcularHoras(p.entrada, p.almocoSaida);
         const horasTarde = calcularHoras(p.almocoRetorno, p.saida);
         const totalDia = horasManha + horasTarde;
-
         const extras = totalDia > 8 ? (totalDia - 8) : 0;
-        const pagar = totalDia < 8 ? (8 - totalDia) : 0;
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
@@ -75,9 +219,8 @@
           <td>${p.almocoSaida}</td>
           <td>${p.almocoRetorno}</td>
           <td>${p.saida}</td>
-          <td>${totalDia.toFixed(2)} h</td>
-          <td>${extras.toFixed(2)} h</td>
-          <td>${pagar.toFixed(2)} h</td>
+          <td>${totalDia.toFixed(2)}</td>
+          <td>${extras.toFixed(2)}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -88,7 +231,8 @@
       const doc = new jsPDF();
 
       const tabela = document.querySelector("#tabelaPontos");
-      let totalHoras = 0, totalExtras = 0, totalPagar = 0;
+      let totalHoras = 0;
+      let totalExtras = 0;
 
       const linhas = [];
       tabela.querySelectorAll("tbody tr").forEach(tr => {
@@ -98,32 +242,29 @@
 
         totalHoras += parseFloat(tds[5].textContent);
         totalExtras += parseFloat(tds[6].textContent);
-        totalPagar += parseFloat(tds[7].textContent);
       });
 
       doc.setFontSize(14);
       doc.text("Relatório de Pontos", 14, 20);
 
       doc.autoTable({
-        head: [['Data','Entrada','Saída Almoço','Retorno','Saída','Horas Trabalhadas','Horas Extras','Horas a Pagar']],
+        head: [['Data','Entrada','Saída Almoço','Retorno','Saída','Horas Trabalhadas','Horas Extras']],
         body: linhas,
         startY: 30
       });
 
       const yFinal = doc.lastAutoTable.finalY + 10;
       doc.setFontSize(12);
-      doc.text(`Total de Horas Trabalhadas: ${totalHoras.toFixed(2)} h`, 14, yFinal);
-      doc.text(`Total de Horas Extras: ${totalExtras.toFixed(2)} h`, 14, yFinal+10);
-      doc.text(`Total de Horas a Pagar: ${totalPagar.toFixed(2)} h`, 14, yFinal+20);
+      doc.text(`Total de Horas Trabalhadas no Mês: ${totalHoras.toFixed(2)}h`, 14, yFinal);
+      doc.text(`Total de Horas Extras no Mês: ${totalExtras.toFixed(2)}h`, 14, yFinal+10);
 
       // Linha de assinatura
-      doc.line(14, yFinal+50, 100, yFinal+50);
-      doc.text("Assinatura do Funcionário", 14, yFinal+58);
+      doc.line(14, yFinal+40, 100, yFinal+40);
+      doc.text("Assinatura do Funcionário", 14, yFinal+48);
 
       doc.save("relatorio-pontos.pdf");
     }
-
-    window.onload = buscarPontos;
   </script>
 </body>
 </html>
+
