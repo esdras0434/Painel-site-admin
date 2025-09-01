@@ -196,35 +196,37 @@
     }
 
     function buscarPontos() {
-      const tbody = document.querySelector("#tabelaPontos tbody");
-      tbody.innerHTML = "";
+  const tbody = document.querySelector("#tabelaPontos tbody");
+  tbody.innerHTML = "";
 
-      // Exemplo de dados simulados
-      const pontos = [
-        {data:"2025-08-01", entrada:"08:00", almocoSaida:"12:00", almocoRetorno:"13:00", saida:"17:30"},
-        {data:"2025-08-02", entrada:"08:15", almocoSaida:"12:05", almocoRetorno:"13:00", saida:"18:20"},
-        {data:"2025-08-03", entrada:"08:10", almocoSaida:"12:00", almocoRetorno:"13:15", saida:"17:00"}
-      ];
+  // Exemplo de dados simulados
+  const pontos = [
+    {data:"2025-08-01", entrada:"08:00", almocoSaida:"12:00", almocoRetorno:"13:00", saida:"17:30"},
+    {data:"2025-08-02", entrada:"08:15", almocoSaida:"12:05", almocoRetorno:"13:00", saida:"18:20"},
+    {data:"2025-08-03", entrada:"08:10", almocoSaida:"12:00", almocoRetorno:"13:15", saida:"17:00"}
+  ];
 
-      pontos.forEach(p => {
-        const horasManha = calcularHoras(p.entrada, p.almocoSaida);
-        const horasTarde = calcularHoras(p.almocoRetorno, p.saida);
-        const totalDia = horasManha + horasTarde;
-        const extras = totalDia > 8 ? (totalDia - 8) : 0;
+  pontos.forEach(p => {
+    const horasManha = calcularHoras(p.entrada, p.almocoSaida);
+    const horasTarde = calcularHoras(p.almocoRetorno, p.saida);
+    const totalDia = horasManha + horasTarde;
+    const extras = totalDia > 8 ? (totalDia - 8) : 0;
 
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${p.data}</td>
-          <td>${p.entrada}</td>
-          <td>${p.almocoSaida}</td>
-          <td>${p.almocoRetorno}</td>
-          <td>${p.saida}</td>
-          <td>${totalDia.toFixed(2)}</td>
-          <td>${extras.toFixed(2)}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
+    // Cria linha e preenche todas as colunas
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${p.data}</td>
+      <td>${p.entrada}</td>
+      <td>${p.almocoSaida}</td>
+      <td>${p.almocoRetorno}</td>
+      <td>${p.saida}</td>
+      <td>${totalDia.toFixed(2)} h</td>
+      <td>${extras.toFixed(2)} h</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
 
     async function exportarPDF() {
       const { jsPDF } = window.jspdf;
@@ -267,4 +269,5 @@
   </script>
 </body>
 </html>
+
 
