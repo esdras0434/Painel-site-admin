@@ -152,88 +152,97 @@
     </table>
   </div>
 
-  <!-- Bibliotecas jsPDF e AutoTable -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+ <!-- Bibliotecas jsPDF e AutoTable -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
-  <script>
-    // Função auxiliar para calcular diferença de horas
-    function calcularHoras(inicio, fim) {
-      if (!inicio || !fim) return 0;
-      const [h1, m1] = inicio.split(":").map(Number);
-      const [h2, m2] = fim.split(":").map(Number);
-      return (h2*60+m2 - (h1*60+m1)) / 60;
-    }
+<script>
+  // Função auxiliar para calcular diferença de horas (com segundos)
+  function calcularHoras(inicio, fim) {
+    if (!inicio || !fim || inicio === "-" || fim === "-") return 0;
+    const [h1, m1, s1 = 0] = inicio.split(":").map(Number);
+    const [h2, m2, s2 = 0] = fim.split(":").map(Number);
+    const t1 = h1 * 3600 + m1 * 60 + s1;
+    const t2 = h2 * 3600 + m2 * 60 + s2;
+    return (t2 - t1) / 3600; // retorna em horas
+  }
 
-    function buscarPontos() {
-      const tbody = document.querySelector("#tabelaPontos tbody");
-      tbody.innerHTML = "";
+  function buscarPontos() {
+    const tbody = document.querySelector("#tabelaPontos tbody");
+    tbody.innerHTML = "";
 
-      // Exemplo de dados simulados
-      const pontos = [
-        {data:"2025-08-01", entrada:"08:00", almocoSaida:"12:00", almocoRetorno:"13:00", saida:"17:30"},
-        {data:"2025-08-02", entrada:"08:15", almocoSaida:"12:05", almocoRetorno:"13:00", saida:"18:20"},
-        {data:"2025-08-03", entrada:"08:10", almocoSaida:"12:00", almocoRetorno:"13:15", saida:"17:00"}
-      ];
+    // Exemplo de dados simulados
+    const pontos = [
+      {data:"2025-08-01", entrada:"08:09:37", almocoSaida:"12:05:13", almocoRetorno:"13:00:51", saida:"17:15:40"},
+      {data:"2025-08-02", entrada:"08:13:35", almocoSaida:"-", almocoRetorno:"-", saida:"12:03:45"},
+      {data:"2025-08-04", entrada:"07:49:56", almocoSaida:"12:02:17", almocoRetorno:"13:03:23", saida:"17:24:41"}
+    ];
 
-      pontos.forEach(p => {
-        const horasManha = calcularHoras(p.entrada, p.almocoSaida);
-        const horasTarde = calcularHoras(p.almocoRetorno, p.saida);
-        const totalDia = horasManha + horasTarde;
-        const extras = totalDia > 8 ? (totalDia - 8) : 0;
+    pontos.forEach(p => {
+      let totalDia = 0;
 
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${p.data}</td>
-          <td>${p.entrada}</td>
-          <td>${p.almocoSaida}</td>
-          <td>${p.almocoRetorno}</td>
-          <td>${p.saida}</td>
-          <td>${totalDia.toFixed(2)}</td>
-          <td>${extras.toFixed(2)}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
+      if (p.almocoSaida !== "-" && p.almocoRetorno !== "-") {
+        // Caso tenha almoço
+        totalDia = calcularHoras(p.entrada, p.almocoSaida) + calcularHoras(p.almocoRetorno, p.saida);
+      } else {
+        // Caso não tenha almoço
+        totalDia = calcularHoras(p.entrada, p.saida);
+      }
 
-    async function exportarPDF() {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
+      const extras = totalDia > 8 ? (totalDia - 8) : 0;
 
-      const tabela = document.querySelector("#tabelaPontos");
-      let totalHoras = 0;
-      let totalExtras = 0;
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${p.data}</td>
+        <td>${p.entrada}</td>
+        <td>${p.almocoSaida}</td>
+        <td>${p.almocoRetorno}</td>
+        <td>${p.saida}</td>
+        <td>${totalDia.toFixed(2)}</td>
+        <td>${extras.toFixed(2)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
 
-      const linhas = [];
-      tabela.querySelectorAll("tbody tr").forEach(tr => {
-        const tds = tr.querySelectorAll("td");
-        const linha = Array.from(tds).map(td => td.textContent);
-        linhas.push(linha);
+  async function exportarPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
 
-        totalHoras += parseFloat(tds[5].textContent);
-        totalExtras += parseFloat(tds[6].textContent);
-      });
+    const tabela = document.querySelector("#tabelaPontos");
+    let totalHoras = 0;
+    let totalExtras = 0;
 
-      doc.setFontSize(14);
-      doc.text("Relatório de Pontos", 14, 20);
+    const linhas = [];
+    tabela.querySelectorAll("tbody tr").forEach(tr => {
+      const tds = tr.querySelectorAll("td");
+      const linha = Array.from(tds).map(td => td.textContent);
+      linhas.push(linha);
 
-      doc.autoTable({
-        head: [['Data','Entrada','Saída Almoço','Retorno','Saída','Horas Trabalhadas','Horas Extras']],
-        body: linhas,
-        startY: 30
-      });
+      totalHoras += parseFloat(tds[5].textContent);
+      totalExtras += parseFloat(tds[6].textContent);
+    });
 
-      const yFinal = doc.lastAutoTable.finalY + 10;
-      doc.setFontSize(12);
-      doc.text(`Total de Horas Trabalhadas no Mês: ${totalHoras.toFixed(2)}h`, 14, yFinal);
-      doc.text(`Total de Horas Extras no Mês: ${totalExtras.toFixed(2)}h`, 14, yFinal+10);
+    doc.setFontSize(14);
+    doc.text("Relatório de Pontos", 14, 20);
 
-      // Linha de assinatura
-      doc.line(14, yFinal+40, 100, yFinal+40);
-      doc.text("Assinatura do Funcionário", 14, yFinal+48);
+    doc.autoTable({
+      head: [['Data','Entrada','Saída Almoço','Retorno','Saída','Horas Trabalhadas','Horas Extras']],
+      body: linhas,
+      startY: 30
+    });
 
-      doc.save("relatorio-pontos.pdf");
-    }
-  </script>
+    const yFinal = doc.lastAutoTable.finalY + 10;
+    doc.setFontSize(12);
+    doc.text(`Total de Horas Trabalhadas no Mês: ${totalHoras.toFixed(2)}h`, 14, yFinal);
+    doc.text(`Total de Horas Extras no Mês: ${totalExtras.toFixed(2)}h`, 14, yFinal+10);
+
+    // Linha de assinatura
+    doc.line(14, yFinal+40, 100, yFinal+40);
+    doc.text("Assinatura do Funcionário", 14, yFinal+48);
+
+    doc.save("relatorio-pontos.pdf");
+  }
+</script>
 </body>
 </html>
