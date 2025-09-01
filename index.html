@@ -13,6 +13,7 @@
     }
 
     .container {
+      max-width: 1000px;
       max-width: 1100px;
       margin: 40px auto;
       background: white;
@@ -163,6 +164,7 @@
     <table id="tabelaPontos">
       <thead>
         <tr>
+          <th colspan="5" id="nomeFuncionario">Funcionário: -</th>
           <th colspan="7" id="nomeFuncionario">Funcionário: -</th>
         </tr>
         <tr>
@@ -183,6 +185,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
+  <script type="module" src="script.js"></script>
   <script>
     // Função auxiliar para calcular diferença de horas
     function calcularHoras(inicio, fim) {
@@ -190,12 +193,6 @@
       const [h1, m1] = inicio.split(":").map(Number);
       const [h2, m2] = fim.split(":").map(Number);
       return (h2*60+m2 - (h1*60+m1)) / 60;
-    }
-
-    function formatarHoras(valor) {
-      const horas = Math.floor(valor);
-      const minutos = Math.round((valor - horas) * 60);
-      return `${horas.toString().padStart(2,"0")}:${minutos.toString().padStart(2,"0")}`;
     }
 
     function buscarPontos() {
@@ -222,8 +219,8 @@
           <td>${p.almocoSaida}</td>
           <td>${p.almocoRetorno}</td>
           <td>${p.saida}</td>
-          <td>${formatarHoras(totalDia)}</td>
-          <td>${formatarHoras(extras)}</td>
+          <td>${totalDia.toFixed(2)}</td>
+          <td>${extras.toFixed(2)}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -243,11 +240,8 @@
         const linha = Array.from(tds).map(td => td.textContent);
         linhas.push(linha);
 
-        const [h, m] = tds[5].textContent.split(":").map(Number);
-        totalHoras += h + m/60;
-
-        const [he, me] = tds[6].textContent.split(":").map(Number);
-        totalExtras += he + me/60;
+        totalHoras += parseFloat(tds[5].textContent);
+        totalExtras += parseFloat(tds[6].textContent);
       });
 
       doc.setFontSize(14);
@@ -261,8 +255,8 @@
 
       const yFinal = doc.lastAutoTable.finalY + 10;
       doc.setFontSize(12);
-      doc.text(`Total de Horas Trabalhadas no Mês: ${formatarHoras(totalHoras)}`, 14, yFinal);
-      doc.text(`Total de Horas Extras no Mês: ${formatarHoras(totalExtras)}`, 14, yFinal+10);
+      doc.text(`Total de Horas Trabalhadas no Mês: ${totalHoras.toFixed(2)}h`, 14, yFinal);
+      doc.text(`Total de Horas Extras no Mês: ${totalExtras.toFixed(2)}h`, 14, yFinal+10);
 
       // Linha de assinatura
       doc.line(14, yFinal+40, 100, yFinal+40);
@@ -273,3 +267,4 @@
   </script>
 </body>
 </html>
+
