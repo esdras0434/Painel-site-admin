@@ -13,7 +13,6 @@
     }
 
     .container {
-      max-width: 1000px;
       max-width: 1100px;
       margin: 40px auto;
       background: white;
@@ -129,6 +128,10 @@
     th {
       background-color: #f2f2f2;
     }
+
+    tbody tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
   </style>
 </head>
 <body>
@@ -164,7 +167,6 @@
     <table id="tabelaPontos">
       <thead>
         <tr>
-          <th colspan="5" id="nomeFuncionario">Funcionário: -</th>
           <th colspan="7" id="nomeFuncionario">Funcionário: -</th>
         </tr>
         <tr>
@@ -185,7 +187,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
-  <script type="module" src="script.js"></script>
   <script>
     // Função auxiliar para calcular diferença de horas
     function calcularHoras(inicio, fim) {
@@ -207,8 +208,12 @@
       ];
 
       pontos.forEach(p => {
+        // Manhã: entrada -> saída almoço
         const horasManha = calcularHoras(p.entrada, p.almocoSaida);
+        // Tarde: retorno almoço -> saída
         const horasTarde = calcularHoras(p.almocoRetorno, p.saida);
+
+        // Total do dia
         const totalDia = horasManha + horasTarde;
         const extras = totalDia > 8 ? (totalDia - 8) : 0;
 
