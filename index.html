@@ -189,22 +189,26 @@
   <script>
     // Função auxiliar para calcular diferença de horas
     function calcularHoras(inicio, fim) {
-      if (!inicio || !fim) return 0;
-      const [h1, m1] = inicio.split(":").map(Number);
-      const [h2, m2] = fim.split(":").map(Number);
-      return (h2*60+m2 - (h1*60+m1)) / 60;
-    }
+  if (!inicio || !fim || inicio === "-" || fim === "-") return 0;
+  const [h1, m1, s1] = inicio.split(":").map(Number);
+  const [h2, m2, s2] = fim.split(":").map(Number);
+  return ((h2*3600 + m2*60 + (s2||0)) - (h1*3600 + m1*60 + (s1||0))) / 3600;
+}
 
-    function buscarPontos() {
+function buscarPontos() {
   const tbody = document.querySelector("#tabelaPontos tbody");
   tbody.innerHTML = "";
 
-  // Exemplo de dados simulados
+  // Exemplo de dados simulados (igual seu backend retorna)
   const pontos = [
-    {data:"2025-08-01", entrada:"08:00", almocoSaida:"12:00", almocoRetorno:"13:00", saida:"17:30"},
-    {data:"2025-08-02", entrada:"08:15", almocoSaida:"12:05", almocoRetorno:"13:00", saida:"18:20"},
-    {data:"2025-08-03", entrada:"08:10", almocoSaida:"12:00", almocoRetorno:"13:15", saida:"17:00"}
+    {data:"2025-08-01", entrada:"08:09:37", almocoSaida:"12:05:13", almocoRetorno:"13:00:51", saida:"17:15:40"},
+    {data:"2025-08-02", entrada:"08:13:35", almocoSaida:"-", almocoRetorno:"-", saida:"12:03:45"},
+    {data:"2025-08-04", entrada:"07:49:56", almocoSaida:"12:02:17", almocoRetorno:"13:03:23", saida:"17:24:41"}
+    // ... mais registros
   ];
+
+  let totalHoras = 0;
+  let totalExtras = 0;
 
   pontos.forEach(p => {
     const horasManha = calcularHoras(p.entrada, p.almocoSaida);
@@ -212,19 +216,31 @@
     const totalDia = horasManha + horasTarde;
     const extras = totalDia > 8 ? (totalDia - 8) : 0;
 
-    // Cria linha e preenche todas as colunas
+    totalHoras += totalDia;
+    totalExtras += extras;
+
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${p.data}</td>
-      <td>${p.entrada}</td>
-      <td>${p.almocoSaida}</td>
-      <td>${p.almocoRetorno}</td>
-      <td>${p.saida}</td>
+      <td>${p.entrada || "-"}</td>
+      <td>${p.almocoSaida || "-"}</td>
+      <td>${p.almocoRetorno || "-"}</td>
+      <td>${p.saida || "-"}</td>
       <td>${totalDia.toFixed(2)} h</td>
       <td>${extras.toFixed(2)} h</td>
     `;
     tbody.appendChild(tr);
   });
+
+  // Adiciona linha de totalização no final
+  const trTotal = document.createElement("tr");
+  trTotal.style.fontWeight = "bold";
+  trTotal.innerHTML = `
+    <td colspan="5">Total do Mês</td>
+    <td>${totalHoras.toFixed(2)} h</td>
+    <td>${totalExtras.toFixed(2)} h</td>
+  `;
+  tbody.appendChild(trTotal);
 }
 
 
@@ -269,5 +285,6 @@
   </script>
 </body>
 </html>
+
 
 
