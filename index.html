@@ -13,7 +13,6 @@
     }
 
     .container {
-      max-width: 1000px;
       max-width: 1100px;
       margin: 40px auto;
       background: white;
@@ -89,32 +88,6 @@
       background-color: #3367d6;
     }
 
-    .autocomplete-container {
-      position: relative;
-    }
-
-    .autocomplete-box {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      background: white;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      max-height: 150px;
-      overflow-y: auto;
-      z-index: 10;
-    }
-
-    .autocomplete-box div {
-      padding: 8px;
-      cursor: pointer;
-    }
-
-    .autocomplete-box div:hover {
-      background-color: #f1f1f1;
-    }
-
     table {
       width: 100%;
       border-collapse: collapse;
@@ -151,7 +124,6 @@
       <button onclick="buscarPontos()">Buscar</button>
     </div>
 
-    <!-- Opções administrativas abaixo da pesquisa -->
     <div class="acoes-barra">
       <a href="cadastrar.html">Cadastrar Funcionário</a>
       <a href="editar.html">Editar Funcionário</a>
@@ -164,7 +136,6 @@
     <table id="tabelaPontos">
       <thead>
         <tr>
-          <th colspan="5" id="nomeFuncionario">Funcionário: -</th>
           <th colspan="7" id="nomeFuncionario">Funcionário: -</th>
         </tr>
         <tr>
@@ -185,64 +156,45 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
-  <script type="module" src="script.js"></script>
   <script>
     // Função auxiliar para calcular diferença de horas
     function calcularHoras(inicio, fim) {
-  if (!inicio || !fim || inicio === "-" || fim === "-") return 0;
-  const [h1, m1, s1] = inicio.split(":").map(Number);
-  const [h2, m2, s2] = fim.split(":").map(Number);
-  return ((h2*3600 + m2*60 + (s2||0)) - (h1*3600 + m1*60 + (s1||0))) / 3600;
-}
+      if (!inicio || !fim) return 0;
+      const [h1, m1] = inicio.split(":").map(Number);
+      const [h2, m2] = fim.split(":").map(Number);
+      return (h2*60+m2 - (h1*60+m1)) / 60;
+    }
 
-function buscarPontos() {
-  const tbody = document.querySelector("#tabelaPontos tbody");
-  tbody.innerHTML = "";
+    function buscarPontos() {
+      const tbody = document.querySelector("#tabelaPontos tbody");
+      tbody.innerHTML = "";
 
-  // Exemplo de dados simulados (igual seu backend retorna)
-  const pontos = [
-    {data:"2025-08-01", entrada:"08:09:37", almocoSaida:"12:05:13", almocoRetorno:"13:00:51", saida:"17:15:40"},
-    {data:"2025-08-02", entrada:"08:13:35", almocoSaida:"-", almocoRetorno:"-", saida:"12:03:45"},
-    {data:"2025-08-04", entrada:"07:49:56", almocoSaida:"12:02:17", almocoRetorno:"13:03:23", saida:"17:24:41"}
-    // ... mais registros
-  ];
+      // Exemplo de dados simulados
+      const pontos = [
+        {data:"2025-08-01", entrada:"08:00", almocoSaida:"12:00", almocoRetorno:"13:00", saida:"17:30"},
+        {data:"2025-08-02", entrada:"08:15", almocoSaida:"12:05", almocoRetorno:"13:00", saida:"18:20"},
+        {data:"2025-08-03", entrada:"08:10", almocoSaida:"12:00", almocoRetorno:"13:15", saida:"17:00"}
+      ];
 
-  let totalHoras = 0;
-  let totalExtras = 0;
+      pontos.forEach(p => {
+        const horasManha = calcularHoras(p.entrada, p.almocoSaida);
+        const horasTarde = calcularHoras(p.almocoRetorno, p.saida);
+        const totalDia = horasManha + horasTarde;
+        const extras = totalDia > 8 ? (totalDia - 8) : 0;
 
-  pontos.forEach(p => {
-    const horasManha = calcularHoras(p.entrada, p.almocoSaida);
-    const horasTarde = calcularHoras(p.almocoRetorno, p.saida);
-    const totalDia = horasManha + horasTarde;
-    const extras = totalDia > 8 ? (totalDia - 8) : 0;
-
-    totalHoras += totalDia;
-    totalExtras += extras;
-
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${p.data}</td>
-      <td>${p.entrada || "-"}</td>
-      <td>${p.almocoSaida || "-"}</td>
-      <td>${p.almocoRetorno || "-"}</td>
-      <td>${p.saida || "-"}</td>
-      <td>${totalDia.toFixed(2)} h</td>
-      <td>${extras.toFixed(2)} h</td>
-    `;
-    tbody.appendChild(tr);
-  });
-
-  // Adiciona linha de totalização no final
-  const trTotal = document.createElement("tr");
-  trTotal.style.fontWeight = "bold";
-  trTotal.innerHTML = `
-    <td colspan="5">Total do Mês</td>
-    <td>${totalHoras.toFixed(2)} h</td>
-    <td>${totalExtras.toFixed(2)} h</td>
-  `;
-  tbody.appendChild(trTotal);
-}
-
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${p.data}</td>
+          <td>${p.entrada}</td>
+          <td>${p.almocoSaida}</td>
+          <td>${p.almocoRetorno}</td>
+          <td>${p.saida}</td>
+          <td>${totalDia.toFixed(2)}</td>
+          <td>${extras.toFixed(2)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
 
     async function exportarPDF() {
       const { jsPDF } = window.jspdf;
@@ -285,6 +237,3 @@ function buscarPontos() {
   </script>
 </body>
 </html>
-
-
-
