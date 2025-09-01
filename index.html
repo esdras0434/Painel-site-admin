@@ -183,20 +183,21 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
+  <script type="module" src="script.js"></script>
   <script>
     // Função auxiliar para calcular diferença de horas
     function calcularHoras(inicio, fim) {
       if (!inicio || !fim) return 0;
       const [h1, m1] = inicio.split(":").map(Number);
       const [h2, m2] = fim.split(":").map(Number);
-      return (h2 * 60 + m2 - (h1 * 60 + m1)) / 60;
+      return (h2*60+m2 - (h1*60+m1)) / 60;
     }
 
     function buscarPontos() {
       const tbody = document.querySelector("#tabelaPontos tbody");
       tbody.innerHTML = "";
 
-      // Exemplo de dados simulados (no seu caso já vem do servidor)
+      // Exemplo de dados simulados
       const pontos = [
         {data:"2025-08-01", entrada:"08:00", almocoSaida:"12:00", almocoRetorno:"13:00", saida:"17:30"},
         {data:"2025-08-02", entrada:"08:15", almocoSaida:"12:05", almocoRetorno:"13:00", saida:"18:20"},
@@ -211,10 +212,10 @@
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${p.data}</td>
-          <td>${p.entrada || "-"}</td>
-          <td>${p.almocoSaida || "-"}</td>
-          <td>${p.almocoRetorno || "-"}</td>
-          <td>${p.saida || "-"}</td>
+          <td>${p.entrada}</td>
+          <td>${p.almocoSaida}</td>
+          <td>${p.almocoRetorno}</td>
+          <td>${p.saida}</td>
           <td>${totalDia.toFixed(2)}</td>
           <td>${extras.toFixed(2)}</td>
         `;
