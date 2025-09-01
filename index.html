@@ -175,9 +175,7 @@
           <th>Horas Extras</th>
         </tr>
       </thead>
-      <tbody>
-        <!-- Linhas vindas do servidor -->
-      </tbody>
+      <tbody></tbody>
     </table>
   </div>
 
@@ -186,39 +184,41 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
   <script>
-    // Função auxiliar para calcular diferença entre horários HH:MM ou HH:MM:SS
+    // Função auxiliar para calcular diferença de horas
     function calcularHoras(inicio, fim) {
-      if (!inicio || !fim || inicio === "-" || fim === "-") return 0;
-      const [h1, m1, s1] = inicio.split(":").map(Number);
-      const [h2, m2, s2] = fim.split(":").map(Number);
-      return (h2*3600+m2*60+(s2||0) - (h1*3600+m1*60+(s1||0))) / 3600;
+      if (!inicio || !fim) return 0;
+      const [h1, m1] = inicio.split(":").map(Number);
+      const [h2, m2] = fim.split(":").map(Number);
+      return (h2 * 60 + m2 - (h1 * 60 + m1)) / 60;
     }
 
-    // Processa a tabela recebida do servidor
-    function processarTabela() {
-      const linhas = document.querySelectorAll("#tabelaPontos tbody tr");
+    function buscarPontos() {
+      const tbody = document.querySelector("#tabelaPontos tbody");
+      tbody.innerHTML = "";
 
-      linhas.forEach(tr => {
-        const tds = tr.querySelectorAll("td");
-        if (tds.length < 5) return;
+      // Exemplo de dados simulados (no seu caso já vem do servidor)
+      const pontos = [
+        {data:"2025-08-01", entrada:"08:00", almocoSaida:"12:00", almocoRetorno:"13:00", saida:"17:30"},
+        {data:"2025-08-02", entrada:"08:15", almocoSaida:"12:05", almocoRetorno:"13:00", saida:"18:20"},
+        {data:"2025-08-03", entrada:"08:10", almocoSaida:"12:00", almocoRetorno:"13:15", saida:"17:00"}
+      ];
 
-        const entrada = tds[1]?.textContent.trim();
-        const almocoSaida = tds[2]?.textContent.trim();
-        const almocoRetorno = tds[3]?.textContent.trim();
-        const saida = tds[4]?.textContent.trim();
-
-        const horasManha = calcularHoras(entrada, almocoSaida);
-        const horasTarde = calcularHoras(almocoRetorno, saida);
-        const totalDia = horasManha + horasTarde;
+      pontos.forEach(p => {
+        // Agora só considera entrada da manhã e saída da tarde
+        const totalDia = calcularHoras(p.entrada, p.saida);
         const extras = totalDia > 8 ? (totalDia - 8) : 0;
 
-        // Preenche ou adiciona colunas
-        if (tds.length >= 7) {
-          tds[5].textContent = totalDia.toFixed(2);
-          tds[6].textContent = extras.toFixed(2);
-        } else {
-          tr.innerHTML += `<td>${totalDia.toFixed(2)}</td><td>${extras.toFixed(2)}</td>`;
-        }
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${p.data}</td>
+          <td>${p.entrada || "-"}</td>
+          <td>${p.almocoSaida || "-"}</td>
+          <td>${p.almocoRetorno || "-"}</td>
+          <td>${p.saida || "-"}</td>
+          <td>${totalDia.toFixed(2)}</td>
+          <td>${extras.toFixed(2)}</td>
+        `;
+        tbody.appendChild(tr);
       });
     }
 
@@ -234,11 +234,10 @@
       tabela.querySelectorAll("tbody tr").forEach(tr => {
         const tds = tr.querySelectorAll("td");
         const linha = Array.from(tds).map(td => td.textContent);
-        if (linha.length > 0) {
-          linhas.push(linha);
-          totalHoras += parseFloat(tds[5].textContent || 0);
-          totalExtras += parseFloat(tds[6].textContent || 0);
-        }
+        linhas.push(linha);
+
+        totalHoras += parseFloat(tds[5].textContent);
+        totalExtras += parseFloat(tds[6].textContent);
       });
 
       doc.setFontSize(14);
@@ -255,14 +254,12 @@
       doc.text(`Total de Horas Trabalhadas no Mês: ${totalHoras.toFixed(2)}h`, 14, yFinal);
       doc.text(`Total de Horas Extras no Mês: ${totalExtras.toFixed(2)}h`, 14, yFinal+10);
 
+      // Linha de assinatura
       doc.line(14, yFinal+40, 100, yFinal+40);
       doc.text("Assinatura do Funcionário", 14, yFinal+48);
 
       doc.save("relatorio-pontos.pdf");
     }
-
-    // Executa cálculo ao carregar a página
-    window.onload = processarTabela;
   </script>
 </body>
 </html>
