@@ -164,6 +164,7 @@
     <table id="tabelaPontos">
       <thead>
         <tr>
+          <th colspan="5" id="nomeFuncionario">Funcionário: -</th>
           <th colspan="7" id="nomeFuncionario">Funcionário: -</th>
         </tr>
         <tr>
@@ -187,42 +188,43 @@
   <script type="module" src="script.js"></script>
   <script>
     // Função auxiliar para calcular diferença de horas
-    // Função auxiliar para calcular diferença de horas com segundos
-// Função auxiliar para calcular diferença de horas com segundos
-function calcularHoras(inicio, fim) {
-  if (!inicio || !fim || inicio === "-" || fim === "-") return 0;
+    function calcularHoras(inicio, fim) {
+      if (!inicio || !fim) return 0;
+      const [h1, m1] = inicio.split(":").map(Number);
+      const [h2, m2] = fim.split(":").map(Number);
+      return (h2*60+m2 - (h1*60+m1)) / 60;
+    }
 
-  const [h1, m1, s1] = inicio.split(":").map(Number);
-  const [h2, m2, s2] = fim.split(":").map(Number);
+    function buscarPontos() {
+      const tbody = document.querySelector("#tabelaPontos tbody");
+      tbody.innerHTML = "";
 
-  let inicioSeg = h1 * 3600 + m1 * 60 + (s1 || 0);
-  let fimSeg    = h2 * 3600 + m2 * 60 + (s2 || 0);
+      // Exemplo de dados simulados
+      const pontos = [
+        {data:"2025-08-01", entrada:"08:00", almocoSaida:"12:00", almocoRetorno:"13:00", saida:"17:30"},
+        {data:"2025-08-02", entrada:"08:15", almocoSaida:"12:05", almocoRetorno:"13:00", saida:"18:20"},
+        {data:"2025-08-03", entrada:"08:10", almocoSaida:"12:00", almocoRetorno:"13:15", saida:"17:00"}
+      ];
 
-  let diff = fimSeg - inicioSeg;
-  if (diff < 0) diff += 24 * 3600; // caso passe da meia-noite
+      pontos.forEach(p => {
+        const horasManha = calcularHoras(p.entrada, p.almocoSaida);
+        const horasTarde = calcularHoras(p.almocoRetorno, p.saida);
+        const totalDia = horasManha + horasTarde;
+        const extras = totalDia > 8 ? (totalDia - 8) : 0;
 
-  return diff / 3600;
-}
-
-function buscarPontos() {
-  const linhas = document.querySelectorAll("#tabelaPontos tbody tr");
-
-  linhas.forEach(tr => {
-    const entrada       = tr.cells[1]?.innerText.trim();
-    const almocoSaida   = tr.cells[2]?.innerText.trim();
-    const almocoRetorno = tr.cells[3]?.innerText.trim();
-    const saida         = tr.cells[4]?.innerText.trim();
-
-    const horasManha = calcularHoras(entrada, almocoSaida);
-    const horasTarde = calcularHoras(almocoRetorno, saida);
-    const totalDia = horasManha + horasTarde;
-    const extras = totalDia > 8 ? (totalDia - 8) : 0;
-
-    // Preenche as colunas 5 e 6 (Horas Trabalhadas e Horas Extras)
-    tr.cells[5].innerText = totalDia > 0 ? totalDia.toFixed(2).replace(".", ",") : "-";
-    tr.cells[6].innerText = extras > 0 ? extras.toFixed(2).replace(".", ",") : "-";
-  });
-}
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${p.data}</td>
+          <td>${p.entrada}</td>
+          <td>${p.almocoSaida}</td>
+          <td>${p.almocoRetorno}</td>
+          <td>${p.saida}</td>
+          <td>${totalDia.toFixed(2)}</td>
+          <td>${extras.toFixed(2)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
 
     async function exportarPDF() {
       const { jsPDF } = window.jspdf;
@@ -265,7 +267,4 @@ function buscarPontos() {
   </script>
 </body>
 </html>
-
-
-
 
