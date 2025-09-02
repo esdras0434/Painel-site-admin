@@ -88,6 +88,32 @@
       background-color: #3367d6;
     }
 
+    .autocomplete-container {
+      position: relative;
+    }
+
+    .autocomplete-box {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      max-height: 150px;
+      overflow-y: auto;
+      z-index: 10;
+    }
+
+    .autocomplete-box div {
+      padding: 8px;
+      cursor: pointer;
+    }
+
+    .autocomplete-box div:hover {
+      background-color: #f1f1f1;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
@@ -106,14 +132,14 @@
 
     /* Linha de assinatura */
     .assinatura {
-      margin-top: 50px;
+      margin-top: 40px;
       text-align: center;
     }
 
     .linha-assinatura {
       margin: 40px auto 5px auto;
-      width: 400px;
-      border-top: 2px solid #000;
+      width: 300px;
+      border-top: 1px solid #000;
     }
 
     .assinatura span {
@@ -124,16 +150,26 @@
   </style>
 </head>
 <body>
-  <div class="container" id="conteudoPDF">
+  <div class="container">
     <h1>Painel Administrativo</h1>
 
     <div class="filtros">
-      <input type="text" id="buscaFuncionario" placeholder="Buscar por nome ou CPF" autocomplete="off" />
+      <div class="autocomplete-container">
+        <input
+          type="text"
+          id="buscaFuncionario"
+          placeholder="Buscar por nome ou CPF"
+          autocomplete="off"
+        />
+        <div id="sugestoes" class="autocomplete-box"></div>
+      </div>
+
       <input type="date" id="filtroData" />
       <input type="month" id="filtroMes" />
       <button onclick="buscarPontos()">Buscar</button>
     </div>
 
+    <!-- Opções administrativas abaixo da pesquisa -->
     <div class="acoes-barra">
       <a href="cadastrar.html">Cadastrar Funcionário</a>
       <a href="editar.html">Editar Funcionário</a>
@@ -146,6 +182,7 @@
     <table id="tabelaPontos">
       <thead>
         <tr>
+          <th colspan="5" id="nomeFuncionario">Funcionário: -</th>
           <th colspan="7" id="nomeFuncionario">Funcionário: -</th>
         </tr>
         <tr>
@@ -161,20 +198,20 @@
       <tbody></tbody>
     </table>
 
-    <!-- Assinaturas -->
+    <!-- Assinatura -->
     <div class="assinatura">
       <div class="linha-assinatura"></div>
       <span>Assinatura do Funcionário</span>
-      <div class="linha-assinatura" style="margin-top:50px;"></div>
-      <span>Assinatura do Gestor</span>
     </div>
   </div>
 
-  <!-- Bibliotecas necessárias -->
+  <!-- Bibliotecas jsPDF e AutoTable -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
+  <script type="module" src="script.js"></script>
   <script>
+    // Função auxiliar para calcular diferença de horas
     function calcularHoras(inicio, fim) {
       if (!inicio || !fim) return 0;
       const [h1, m1] = inicio.split(":").map(Number);
@@ -186,6 +223,7 @@
       const tbody = document.querySelector("#tabelaPontos tbody");
       tbody.innerHTML = "";
 
+      // Exemplo de dados simulados
       const pontos = [
         {data:"2025-08-01", entrada:"08:00", almocoSaida:"12:00", almocoRetorno:"13:00", saida:"17:30"},
         {data:"2025-08-02", entrada:"08:15", almocoSaida:"12:05", almocoRetorno:"13:00", saida:"18:20"},
@@ -214,19 +252,41 @@
 
     async function exportarPDF() {
       const { jsPDF } = window.jspdf;
-      const conteudo = document.getElementById("conteudoPDF");
+      const doc = new jsPDF();
 
-      // Usa html2canvas para "fotografar" o conteúdo inteiro
-      const canvas = await html2canvas(conteudo, { scale: 2 });
-      const imgData = canvas.toDataURL("image/png");
+      const tabela = document.querySelector("#tabelaPontos");
+      let totalHoras = 0;
+      let totalExtras = 0;
 
-      const pdf = new jsPDF("p", "mm", "a4");
-      const imgProps = pdf.getImageProperties(imgData);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      const linhas = [];
+      tabela.querySelectorAll("tbody tr").forEach(tr => {
+        const tds = tr.querySelectorAll("td");
+        const linha = Array.from(tds).map(td => td.textContent);
+        linhas.push(linha);
 
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      pdf.save("relatorio-completo.pdf");
+        totalHoras += parseFloat(tds[5].textContent);
+        totalExtras += parseFloat(tds[6].textContent);
+      });
+
+      doc.setFontSize(14);
+      doc.text("Relatório de Pontos", 14, 20);
+
+      doc.autoTable({
+        head: [['Data','Entrada','Saída Almoço','Retorno','Saída','Horas Trabalhadas','Horas Extras']],
+        body: linhas,
+        startY: 30
+      });
+
+      const yFinal = doc.lastAutoTable.finalY + 10;
+      doc.setFontSize(12);
+      doc.text(`Total de Horas Trabalhadas no Mês: ${totalHoras.toFixed(2)}h`, 14, yFinal);
+      doc.text(`Total de Horas Extras no Mês: ${totalExtras.toFixed(2)}h`, 14, yFinal+10);
+
+      // Linha de assinatura no PDF
+      doc.line(14, yFinal+40, 100, yFinal+40);
+      doc.text("Assinatura do Funcionário", 14, yFinal+48);
+
+      doc.save("relatorio-pontos.pdf");
     }
   </script>
 </body>
