@@ -251,54 +251,58 @@
     }
 
     async function exportarPDF() {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-
-      const tabela = document.querySelector("#tabelaPontos");
-      let totalHoras = 0;
-      let totalExtras = 0;
-
-      const linhas = [];
-      tabela.querySelectorAll("tbody tr").forEach(tr => {
-        const tds = tr.querySelectorAll("td");
-        const linha = Array.from(tds).map(td => td.textContent);
-        linhas.push(linha);
-
-        totalHoras += parseFloat(tds[5].textContent);
-        totalExtras += parseFloat(tds[6].textContent);
-      });
-
-      doc.setFontSize(14);
-      doc.text("Relatório de Pontos", 14, 20);
-
-      doc.autoTable({
-        head: [['Data','Entrada','Saída Almoço','Retorno','Saída','Horas Trabalhadas','Horas Extras']],
-        body: linhas,
-        startY: 30
-      });
-
-      const yFinal = doc.lastAutoTable.finalY + 10;
-      doc.setFontSize(12);
-      doc.text(`Total de Horas Trabalhadas no Mês: ${totalHoras.toFixed(2)}h`, 14, yFinal);
-      doc.text(`Total de Horas Extras no Mês: ${totalExtras.toFixed(2)}h`, 14, yFinal+10);
-      
-      // Linha de assinatura no PDF
-      doc.setFontSize(12);    
-      const larguraPagina = doc.internal.pageSize.getWidth(); // largura total da página
-      
-      // Linha de assinatura centralizada
-      const yLinha = yFinal + 40;
-      const margem = 40;
-      doc.line(margem, yLinha, larguraPagina - margem, yLinha);
-      doc.text("Assinatura do Funcionário", larguraPagina / 2, yLinha + 8, { align: "center" });
-
-      
-
-      doc.save("relatorio-pontos.pdf");
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+  
+    const tabela = document.querySelector("#tabelaPontos");
+    let totalHoras = 0;
+    let totalExtras = 0;
+  
+    const linhas = [];
+    tabela.querySelectorAll("tbody tr").forEach(tr => {
+      const tds = tr.querySelectorAll("td");
+      const linha = Array.from(tds).map(td => td.textContent);
+      linhas.push(linha);
+  
+      totalHoras += parseFloat(tds[5].textContent) || 0;
+      totalExtras += parseFloat(tds[6].textContent) || 0;
+    });
+  
+    const larguraPagina = doc.internal.pageSize.getWidth();
+  
+    // Título centralizado
+    doc.setFontSize(14);
+    doc.text("Relatório de Pontos", larguraPagina / 2, 20, { align: "center" });
+  
+    // Tabela
+    doc.autoTable({
+      head: [['Data','Entrada','Saída Almoço','Retorno','Saída','Horas Trabalhadas','Horas Extras']],
+      body: linhas,
+      startY: 30
+    });
+  
+    // Totais
+    let yFinal = 30;
+    if (doc.lastAutoTable) {
+      yFinal = doc.lastAutoTable.finalY + 10;
     }
+    doc.setFontSize(12);
+    doc.text(`Total de Horas Trabalhadas no Mês: ${totalHoras.toFixed(2)}h`, 14, yFinal);
+    doc.text(`Total de Horas Extras no Mês: ${totalExtras.toFixed(2)}h`, 14, yFinal + 10);
+  
+    // Linha de assinatura centralizada
+    const yLinha = yFinal + 40;
+    const margem = 40;
+    doc.line(margem, yLinha, larguraPagina - margem, yLinha);
+    doc.text("Assinatura do Funcionário", larguraPagina / 2, yLinha + 8, { align: "center" });
+  
+    doc.save("relatorio-pontos.pdf");
+  }
+
   </script>
 </body>
 </html>
+
 
 
 
