@@ -250,15 +250,15 @@
       });
     }
 
-    async function exportarPDF() {
+      async function exportarPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
   const tabela = document.querySelector("#tabelaPontos");
   let totalHoras = 0;
   let totalExtras = 0;
-
   const linhas = [];
+
   tabela.querySelectorAll("tbody tr").forEach(tr => {
     const tds = tr.querySelectorAll("td");
     const linha = Array.from(tds).map(td => td.textContent);
@@ -278,14 +278,16 @@
   doc.autoTable({
     head: [['Data','Entrada','Saída Almoço','Retorno','Saída','Horas Trabalhadas','Horas Extras']],
     body: linhas,
-    startY: 30
+    startY: 30,
+    theme: 'grid'
   });
 
-  // Totais
+  // Totais confiáveis
   let yFinal = 30;
   if (doc.lastAutoTable) {
     yFinal = doc.lastAutoTable.finalY + 10;
   }
+
   doc.setFontSize(12);
   doc.text(`Total de Horas Trabalhadas no Mês: ${totalHoras.toFixed(2)}h`, 14, yFinal);
   doc.text(`Total de Horas Extras no Mês: ${totalExtras.toFixed(2)}h`, 14, yFinal + 10);
@@ -296,13 +298,16 @@
   doc.line(margem, yLinha, larguraPagina - margem, yLinha);
   doc.text("Assinatura do Funcionário", larguraPagina / 2, yLinha + 8, { align: "center" });
 
+  // Salvar PDF
   doc.save("relatorio-pontos.pdf");
 }
+
 
 
   </script>
 </body>
 </html>
+
 
 
 
