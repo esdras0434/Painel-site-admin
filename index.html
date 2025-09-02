@@ -250,7 +250,7 @@
       });
     }
 
-      async function exportarPDF() {
+   async function exportarPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
@@ -282,12 +282,8 @@
     theme: 'grid'
   });
 
-  // Totais confiáveis
-  let yFinal = 30;
-  if (doc.lastAutoTable) {
-    yFinal = doc.lastAutoTable.finalY + 10;
-  }
-
+  // Totais
+  let yFinal = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : 50;
   doc.setFontSize(12);
   doc.text(`Total de Horas Trabalhadas no Mês: ${totalHoras.toFixed(2)}h`, 14, yFinal);
   doc.text(`Total de Horas Extras no Mês: ${totalExtras.toFixed(2)}h`, 14, yFinal + 10);
@@ -295,18 +291,22 @@
   // Linha de assinatura centralizada
   const yLinha = yFinal + 40;
   const margem = 40;
+
+  // DESENHANDO A LINHA diretamente no PDF
+  doc.setLineWidth(0.5);           // Espessura da linha
   doc.line(margem, yLinha, larguraPagina - margem, yLinha);
+
+  // Texto da assinatura abaixo da linha
   doc.text("Assinatura do Funcionário", larguraPagina / 2, yLinha + 8, { align: "center" });
 
   // Salvar PDF
   doc.save("relatorio-pontos.pdf");
 }
-
-
-
+   
   </script>
 </body>
 </html>
+
 
 
 
