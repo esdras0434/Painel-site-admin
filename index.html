@@ -132,14 +132,14 @@
 
     /* Linha de assinatura */
     .assinatura {
-      margin-top: 40px;
+      margin-top: 50px;
       text-align: center;
     }
 
     .linha-assinatura {
       margin: 40px auto 5px auto;
-      width: 300px;
-      border-top: 1px solid #000;
+      width: 400px;
+      border-top: 2px solid #000;
     }
 
     .assinatura span {
@@ -282,9 +282,10 @@
       doc.text(`Total de Horas Trabalhadas no Mês: ${totalHoras.toFixed(2)}h`, 14, yFinal);
       doc.text(`Total de Horas Extras no Mês: ${totalExtras.toFixed(2)}h`, 14, yFinal+10);
 
-      // Linha de assinatura no PDF
-      doc.line(14, yFinal+40, 100, yFinal+40);
-      doc.text("Assinatura do Funcionário", 14, yFinal+48);
+      // Linha de assinatura no PDF (maior e centralizada)
+      const linhaY = yFinal + 40;
+      doc.line(20, linhaY, 190, linhaY);
+      doc.text("Assinatura do Funcionário", 80, linhaY + 8);
 
       doc.save("relatorio-pontos.pdf");
     }
