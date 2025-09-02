@@ -287,10 +287,10 @@
       const larguraPagina = doc.internal.pageSize.getWidth(); // largura total da página
       
       // Linha de assinatura centralizada
-      doc.text("____________________________________", larguraPagina / 2, yFinal + 40, { align: "center" });
-      
-      // Texto "Assinatura do Funcionário" centralizado
-      doc.text("Assinatura do Funcionário", larguraPagina / 2, yFinal + 48, { align: "center" });
+      const yLinha = yFinal + 40;
+      const margem = 40;
+      doc.line(margem, yLinha, larguraPagina - margem, yLinha);
+      doc.text("Assinatura do Funcionário", larguraPagina / 2, yLinha + 8, { align: "center" });
 
       
 
@@ -299,5 +299,6 @@
   </script>
 </body>
 </html>
+
 
 
