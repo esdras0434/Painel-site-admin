@@ -281,15 +281,23 @@
       doc.setFontSize(12);
       doc.text(`Total de Horas Trabalhadas no Mês: ${totalHoras.toFixed(2)}h`, 14, yFinal);
       doc.text(`Total de Horas Extras no Mês: ${totalExtras.toFixed(2)}h`, 14, yFinal+10);
-
+      
       // Linha de assinatura no PDF
-      doc.setFontSize(12);
-      doc.text("____________________________________", 14, yFinal + 40);
-      doc.text("Assinatura do Funcionário", 14, yFinal + 48);
+      doc.setFontSize(12);    
+      const larguraPagina = doc.internal.pageSize.getWidth(); // largura total da página
+      
+      // Linha de assinatura centralizada
+      doc.text("____________________________________", larguraPagina / 2, yFinal + 40, { align: "center" });
+      
+      // Texto "Assinatura do Funcionário" centralizado
+      doc.text("Assinatura do Funcionário", larguraPagina / 2, yFinal + 48, { align: "center" });
+
+      
 
       doc.save("relatorio-pontos.pdf");
     }
   </script>
 </body>
 </html>
+
 
