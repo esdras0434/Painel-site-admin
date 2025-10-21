@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>Painel de Pontos</title>
+  <link rel="stylesheet" href="style.css" />
   <style>
     body {
       font-family: sans-serif;
@@ -60,6 +61,59 @@
       background-color: #3367d6;
     }
 
+    .acoes-barra {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+      margin-bottom: 25px;
+    }
+
+    .acoes-barra a,
+    .acoes-barra button {
+      text-decoration: none;
+      padding: 10px 15px;
+      background-color: #4285f4;
+      color: white;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .acoes-barra a:hover,
+    .acoes-barra button:hover {
+      background-color: #3367d6;
+    }
+
+    .autocomplete-container {
+      position: relative;
+    }
+
+    .autocomplete-box {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      max-height: 150px;
+      overflow-y: auto;
+      z-index: 10;
+    }
+
+    .autocomplete-box div {
+      padding: 8px;
+      cursor: pointer;
+    }
+
+    .autocomplete-box div:hover {
+      background-color: #f1f1f1;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
@@ -76,47 +130,71 @@
       background-color: #f2f2f2;
     }
 
-    /* Estilo do popup */
-    .popup {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.3);
-      z-index: 9999;
-      display: none;
-    }
+    /* ===== Popup de Edição de Ponto ===== */
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.4);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+}
 
-    .popup h3 {
-      margin-top: 0;
-      color: #003366;
-    }
+.popup {
+  background: white;
+  padding: 20px 25px;
+  border-radius: 10px;
+  width: 320px;
+  box-shadow: 0 0 15px rgba(0,0,0,0.2);
+  text-align: center;
+}
 
-    .popup input {
-      width: 100%;
-      padding: 8px;
-      margin-top: 10px;
-      margin-bottom: 15px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      font-size: 1rem;
-    }
+.popup h3 {
+  margin-top: 0;
+  color: #003366;
+}
 
-    .popup button {
-      margin-right: 10px;
-      padding: 8px 12px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-    }
+.popup input {
+  width: 90%;
+  padding: 8px;
+  margin-top: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  text-align: center;
+}
 
-    .btn-salvar { background-color: #4caf50; color: white; }
-    .btn-excluir { background-color: #f44336; color: white; }
-    .btn-cancelar { background-color: #9e9e9e; color: white; }
+.popup .botoes {
+  margin-top: 15px;
+  display: flex;
+  justify-content: space-around;
+}
+
+.popup button {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.popup .salvar {
+  background-color: #4caf50;
+  color: white;
+}
+
+.popup .excluir {
+  background-color: #e53935;
+  color: white;
+}
+
+.popup .cancelar {
+  background-color: #ccc;
+}
+
   </style>
 </head>
 <body>
@@ -124,130 +202,230 @@
     <h1>Painel Administrativo</h1>
 
     <div class="filtros">
-      <input type="text" id="buscaFuncionario" placeholder="Buscar por nome ou CPF" autocomplete="off"/>
+      <div class="autocomplete-container">
+        <input
+          type="text"
+          id="buscaFuncionario"
+          placeholder="Buscar por nome ou CPF"
+          autocomplete="off"
+        />
+        <div id="sugestoes" class="autocomplete-box"></div>
+      </div>
+
       <input type="date" id="filtroData" />
       <input type="month" id="filtroMes" />
       <button onclick="buscarPontos()">Buscar</button>
     </div>
 
-    <table id="tabelaPontos">
-      <thead>
-        <tr>
-          <th>Data</th>
-          <th>Entrada (Manhã)</th>
-          <th>Saída (Almoço)</th>
-          <th>Retorno (Almoço)</th>
-          <th>Saída (Tarde)</th>
-          <th>Horas Trabalhadas</th>
-          <th>Horas Extras</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
+    <!-- Opções administrativas abaixo da pesquisa -->
+    <div class="acoes-barra">
+      <a href="cadastrar.html">Cadastrar Funcionário</a>
+      <a href="editar.html">Editar Funcionário</a>
+      <a href="excluir.html">Excluir Funcionário</a>
+      <a href="editar-ponto.html">Editar Ponto</a>
+      <a href="adicionar-ponto.html">Adicionar Ponto</a>
+      <button onclick="exportarPDF()">Exportar PDF</button>
+    </div>
 
-  <!-- Popup -->
-  <div id="popup" class="popup">
-    <h3 id="popupTitulo">Editar Horário</h3>
-    <input type="time" id="campoHora" />
-    <div>
-      <button class="btn-salvar" onclick="salvarHora()">Salvar</button>
-      <button class="btn-excluir" onclick="excluirHora()">Excluir</button>
-      <button class="btn-cancelar" onclick="fecharPopup()">Cancelar</button>
+    <table id="tabelaPontos">
+  <thead>
+    <tr>
+      <th colspan="5" id="nomeFuncionario">Funcionário: -</th>
+      <th colspan="7" id="nomeFuncionario">Funcionário: -</th>
+    </tr>
+    <tr>
+      <th>Data</th>
+      <th>Entrada (Manhã)</th>
+      <th>Saída (Almoço)</th>
+      <th>Retorno (Almoço)</th>
+      <th>Saída (Tarde)</th>
+      <th>Horas Trabalhadas</th>
+      <th>Horas Extras</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- Linhas de ponto serão adicionadas aqui -->
+    
+    <!-- Linha de assinatura -->
+    <tr>
+      <td colspan="7" style="text-align: center; padding-top: 40px;">
+        <div style="border-top: 1px solid #000; width: 300px; margin: 0 auto;"></div>
+        <span>Assinatura do Funcionário</span>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+  <!-- Bibliotecas jsPDF e AutoTable -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+  <script type="module" src="script.js"></script>
+  <script>
+
+     let celulaSelecionada = null;
+     
+  function calcularHoras(inicio, fim) {
+    if (!inicio || !fim) return 0;
+    const [h1, m1] = inicio.split(":").map(Number);
+    const [h2, m2] = fim.split(":").map(Number);
+    return (h2*60+m2 - (h1*60+m1)) / 60;
+  }
+
+  function buscarPontos() {
+    const tbody = document.querySelector("#tabelaPontos tbody");
+    tbody.innerHTML = ""; // limpa linhas antigas, incluindo linha de assinatura
+
+    // Exemplo de dados simulados
+    const pontos = [
+      {data:"2025-08-01", entrada:"08:00", almocoSaida:"12:00", almocoRetorno:"13:00", saida:"17:30"},
+      {data:"2025-08-02", entrada:"08:15", almocoSaida:"12:05", almocoRetorno:"13:00", saida:"18:20"},
+      {data:"2025-08-03", entrada:"08:10", almocoSaida:"12:00", almocoRetorno:"13:15", saida:"17:00"}
+    ];
+
+    pontos.forEach(p => {
+      const horasManha = calcularHoras(p.entrada, p.almocoSaida);
+      const horasTarde = calcularHoras(p.almocoRetorno, p.saida);
+      const totalDia = horasManha + horasTarde;
+      const extras = totalDia > 8 ? (totalDia - 8) : 0;
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${p.data}</td>
+        <td>${p.entrada}</td>
+        <td>${p.almocoSaida}</td>
+        <td>${p.almocoRetorno}</td>
+        <td>${p.saida}</td>
+        <td>${totalDia.toFixed(2)}</td>
+        <td>${extras.toFixed(2)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    // Recriar a linha de assinatura sempre no final
+    const assinatura = document.createElement("tr");
+    assinatura.innerHTML = `
+      <td colspan="7" style="text-align: center; padding-top: 40px;">
+        <div style="border-top: 1px solid #000; width: 300px; margin: 0 auto;"></div>
+        <span>Assinatura do Funcionário</span>
+      </td>
+    `;
+    tbody.appendChild(assinatura);
+  }
+
+  async function exportarPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    const tabela = document.querySelector("#tabelaPontos");
+    const linhas = [];
+    let totalHoras = 0;
+    let totalExtras = 0;
+
+    // Pega todas as linhas do tbody **exceto a linha de assinatura**
+    tabela.querySelectorAll("tbody tr:not(:last-child)").forEach(tr => {
+      const tds = tr.querySelectorAll("td");
+      const linha = Array.from(tds).map(td => td.textContent);
+      linhas.push(linha);
+
+      totalHoras += parseFloat(tds[5]?.textContent) || 0;
+      totalExtras += parseFloat(tds[6]?.textContent) || 0;
+    });
+
+    const larguraPagina = doc.internal.pageSize.getWidth();
+
+    // Título centralizado
+    doc.setFontSize(14);
+    doc.text("Relatório de Pontos", larguraPagina / 2, 20, { align: "center" });
+
+    // Tabela
+    doc.autoTable({
+      head: [['Data','Entrada','Saída Almoço','Retorno','Saída','Horas Trabalhadas','Horas Extras']],
+      body: linhas,
+      startY: 30,
+      theme: 'grid'
+    });
+
+    // Totais
+    let yFinal = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : 50;
+    doc.setFontSize(12);
+    doc.text(`Total de Horas Trabalhadas no Mês: ${totalHoras.toFixed(2)}h`, 14, yFinal);
+    doc.text(`Total de Horas Extras no Mês: ${totalExtras.toFixed(2)}h`, 14, yFinal + 10);
+
+    // Linha de assinatura centralizada
+    const yLinha = yFinal + 40;
+    const margem = 40;
+    const larguraLinha = larguraPagina - margem * 2;
+
+    doc.setLineWidth(0.5);
+    doc.line(margem, yLinha, margem + larguraLinha, yLinha);
+    doc.text("Assinatura do Funcionário", larguraPagina / 2, yLinha + 8, { align: "center" });
+
+    doc.save("relatorio-pontos.pdf");
+  }
+
+// Função para abrir popup ao clicar em uma célula
+document.addEventListener("click", (e) => {
+  if (e.target.tagName === "TD" && !e.target.closest("thead")) {
+    celulaSelecionada = e.target;
+    document.getElementById("campoValor").value = e.target.textContent.trim();
+    document.getElementById("popupTitulo").textContent = "Editar Ponto";
+    document.getElementById("popupOverlay").style.display = "flex";
+  }
+});
+
+function fecharPopup() {
+  document.getElementById("popupOverlay").style.display = "none";
+  celulaSelecionada = null;
+}
+
+// Salvar ou adicionar novo valor
+function salvarAlteracao() {
+  const novoValor = document.getElementById("campoValor").value.trim();
+  if (!novoValor) {
+    alert("Digite um horário válido!");
+    return;
+  }
+  if (celulaSelecionada) {
+    celulaSelecionada.textContent = novoValor;
+  }
+  fecharPopup();
+}
+
+// Excluir valor da célula
+function excluirCelula() {
+  if (celulaSelecionada && confirm("Deseja excluir este horário?")) {
+    celulaSelecionada.textContent = "";
+    fecharPopup();
+  }
+}
+
+</script>
+
+<!-- Popup para Adicionar / Editar / Excluir -->
+<div class="popup-overlay" id="popupOverlay">
+  <div class="popup">
+    <h3 id="popupTitulo">Editar Ponto</h3>
+    <input type="time" id="campoValor" placeholder="Digite o horário" />
+    <div class="botoes">
+      <button class="salvar" onclick="salvarAlteracao()">Salvar</button>
+      <button class="excluir" onclick="excluirCelula()">Excluir</button>
+      <button class="cancelar" onclick="fecharPopup()">Cancelar</button>
     </div>
   </div>
+</div>
 
-  <script>
-    let celulaAtual = null;
-
-    function calcularHoras(inicio, fim) {
-      if (!inicio || !fim) return 0;
-      const [h1, m1] = inicio.split(":").map(Number);
-      const [h2, m2] = fim.split(":").map(Number);
-      return (h2 * 60 + m2 - (h1 * 60 + m1)) / 60;
-    }
-
-    function buscarPontos() {
-      const tbody = document.querySelector("#tabelaPontos tbody");
-      tbody.innerHTML = "";
-
-      const pontos = [
-        {data:"2025-08-01", entrada:"08:00", almocoSaida:"12:00", almocoRetorno:"13:00", saida:"17:30"},
-        {data:"2025-08-02", entrada:"08:15", almocoSaida:"12:05", almocoRetorno:"13:00", saida:"18:20"},
-        {data:"2025-08-03", entrada:"08:10", almocoSaida:"12:00", almocoRetorno:"13:15", saida:"17:00"}
-      ];
-
-      pontos.forEach(p => {
-        const horasManha = calcularHoras(p.entrada, p.almocoSaida);
-        const horasTarde = calcularHoras(p.almocoRetorno, p.saida);
-        const totalDia = horasManha + horasTarde;
-        const extras = totalDia > 8 ? totalDia - 8 : 0;
-
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${p.data}</td>
-          <td>${p.entrada}</td>
-          <td>${p.almocoSaida}</td>
-          <td>${p.almocoRetorno}</td>
-          <td>${p.saida}</td>
-          <td>${totalDia.toFixed(2)}</td>
-          <td>${extras.toFixed(2)}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-
-      // Adiciona evento de clique nas células de horário
-      tbody.querySelectorAll("td:nth-child(2), td:nth-child(3), td:nth-child(4), td:nth-child(5)")
-        .forEach(td => {
-          td.addEventListener("click", () => abrirPopup(td));
-        });
-    }
-
-    function abrirPopup(td) {
-      celulaAtual = td;
-      const popup = document.getElementById("popup");
-      const input = document.getElementById("campoHora");
-      input.value = td.textContent.trim() || "";
-      popup.style.display = "block";
-    }
-
-    function fecharPopup() {
-      document.getElementById("popup").style.display = "none";
-      celulaAtual = null;
-    }
-
-    function salvarHora() {
-      if (!celulaAtual) return;
-      const novaHora = document.getElementById("campoHora").value;
-      celulaAtual.textContent = novaHora;
-      fecharPopup();
-      atualizarTotais(celulaAtual.closest("tr"));
-    }
-
-    function excluirHora() {
-      if (!celulaAtual) return;
-      celulaAtual.textContent = "";
-      fecharPopup();
-      atualizarTotais(celulaAtual.closest("tr"));
-    }
-
-    function atualizarTotais(tr) {
-      const tds = tr.querySelectorAll("td");
-      const entrada = tds[1].textContent;
-      const almocoSaida = tds[2].textContent;
-      const almocoRetorno = tds[3].textContent;
-      const saida = tds[4].textContent;
-
-      const horasManha = calcularHoras(entrada, almocoSaida);
-      const horasTarde = calcularHoras(almocoRetorno, saida);
-      const totalDia = horasManha + horasTarde;
-      const extras = totalDia > 8 ? totalDia - 8 : 0;
-
-      tds[5].textContent = totalDia ? totalDia.toFixed(2) : "0.00";
-      tds[6].textContent = extras ? extras.toFixed(2) : "0.00";
-    }
-
-    window.onload = buscarPontos;
-  </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
