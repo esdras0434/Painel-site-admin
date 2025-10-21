@@ -467,14 +467,15 @@ async function excluirCelula() {
 </script>
 
 <!-- Popup para Adicionar / Editar / Excluir -->
-<div id="popupOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); justify-content:center; align-items:center;">
-  <div style="background:white; padding:20px; border-radius:8px; width:300px; text-align:center;">
+<!-- Popup para Adicionar / Editar / Excluir -->
+<div id="popupOverlay" class="popup-overlay">
+  <div class="popup">
     <h3 id="popupTitulo">Editar Ponto</h3>
-    <input type="time" id="campoValor" step="1" style="width:100%; padding:8px; font-size:16px; margin-bottom:10px;">
-    <div>
-      <button id="btnSalvar" style="padding:8px 12px; margin:5px;">Salvar</button>
-      <button id="btnExcluir" style="padding:8px 12px; margin:5px;">Excluir</button>
-      <button id="btnFechar" style="padding:8px 12px; margin:5px;">Cancelar</button>
+    <input type="time" id="campoValor" step="1">
+    <div class="botoes">
+      <button class="salvar" id="btnSalvar">Salvar</button>
+      <button class="excluir" id="btnExcluir">Excluir</button>
+      <button class="cancelar" id="btnFechar">Cancelar</button>
     </div>
   </div>
 </div>
