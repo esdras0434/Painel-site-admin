@@ -301,14 +301,15 @@
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${p.data}</td>
-        <td>${p.entrada}</td>
-        <td>${p.almocoSaida}</td>
-        <td>${p.almocoRetorno}</td>
-        <td>${p.saida}</td>
+        <td data-tipo="entrada">${p.entrada}</td>
+        <td data-tipo="almocoSaida">${p.almocoSaida}</td>
+        <td data-tipo="almocoRetorno">${p.almocoRetorno}</td>
+        <td data-tipo="saida">${p.saida}</td>
         <td>${totalDia.toFixed(2)}</td>
         <td>${extras.toFixed(2)}</td>
       `;
       tbody.appendChild(tr);
+
     });
 
     // Recriar a linha de assinatura sempre no final
