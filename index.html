@@ -256,166 +256,233 @@
   </tbody>
 </table>
 
-  <!-- Bibliotecas jsPDF e AutoTable -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+ <!-- Bibliotecas jsPDF e AutoTable -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
-  <script type="module" src="script.js"></script>
-  <script>
+<!-- Firebase -->
+<script type="module">
+import { db } from "./firebaseConfig.js";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  updateDoc,
+  doc
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-     let celulaSelecionada = null;
+let celulaSelecionada = null;
+let cpfSelecionado = "12345678900"; // ← aqui você pode trocar pelo CPF do funcionário logado
+let dataSelecionada = null;
 
-  function calcularHoras(inicio, fim) {
-    if (!inicio || !fim) return 0;
-    const [h1, m1] = inicio.split(":").map(Number);
-    const [h2, m2] = fim.split(":").map(Number);
-    return (h2*60+m2 - (h1*60+m1)) / 60;
-  }
+// ------------------------------
+// CALCULA HORAS
+// ------------------------------
+function calcularHoras(inicio, fim) {
+  if (!inicio || !fim) return 0;
+  const [h1, m1] = inicio.split(":").map(Number);
+  const [h2, m2] = fim.split(":").map(Number);
+  return (h2 * 60 + m2 - (h1 * 60 + m1)) / 60;
+}
 
-  function buscarPontos() {
-    const tbody = document.querySelector("#tabelaPontos tbody");
-    tbody.innerHTML = ""; // limpa linhas antigas, incluindo linha de assinatura
+// ------------------------------
+// BUSCA PONTOS NO FIRESTORE
+// ------------------------------
+async function buscarPontos() {
+  const tbody = document.querySelector("#tabelaPontos tbody");
+  tbody.innerHTML = "";
 
-    // Exemplo de dados simulados
-    const pontos = [
-      {data:"2025-08-01", entrada:"08:00", almocoSaida:"12:00", almocoRetorno:"13:00", saida:"17:30"},
-      {data:"2025-08-02", entrada:"08:15", almocoSaida:"12:05", almocoRetorno:"13:00", saida:"18:20"},
-      {data:"2025-08-03", entrada:"08:10", almocoSaida:"12:00", almocoRetorno:"13:15", saida:"17:00"}
-    ];
+  try {
+    const colRef = collection(db, "pontos");
+    const q = query(colRef, where("cpf", "==", cpfSelecionado));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      tbody.innerHTML = "<tr><td colspan='7'>Nenhum ponto encontrado.</td></tr>";
+      return;
+    }
+
+    const pontos = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 
     pontos.forEach(p => {
       const horasManha = calcularHoras(p.entrada, p.almocoSaida);
       const horasTarde = calcularHoras(p.almocoRetorno, p.saida);
       const totalDia = horasManha + horasTarde;
-      const extras = totalDia > 8 ? (totalDia - 8) : 0;
+      const extras = totalDia > 8 ? totalDia - 8 : 0;
 
       const tr = document.createElement("tr");
+      tr.dataset.data = p.data;
+      tr.dataset.id = p.id;
       tr.innerHTML = `
         <td>${p.data}</td>
-        <td>${p.entrada}</td>
-        <td>${p.almocoSaida}</td>
-        <td>${p.almocoRetorno}</td>
-        <td>${p.saida}</td>
+        <td>${p.entrada || ""}</td>
+        <td>${p.almocoSaida || ""}</td>
+        <td>${p.almocoRetorno || ""}</td>
+        <td>${p.saida || ""}</td>
         <td>${totalDia.toFixed(2)}</td>
         <td>${extras.toFixed(2)}</td>
       `;
       tbody.appendChild(tr);
     });
 
-    // Recriar a linha de assinatura sempre no final
+    // Linha de assinatura
     const assinatura = document.createElement("tr");
     assinatura.innerHTML = `
-      <td colspan="7" style="text-align: center; padding-top: 40px;">
-        <div style="border-top: 1px solid #000; width: 300px; margin: 0 auto;"></div>
+      <td colspan="7" style="text-align:center; padding-top:40px;">
+        <div style="border-top:1px solid #000; width:300px; margin:0 auto;"></div>
         <span>Assinatura do Funcionário</span>
       </td>
     `;
     tbody.appendChild(assinatura);
+  } catch (e) {
+    console.error("Erro ao buscar pontos:", e);
   }
+}
 
-  async function exportarPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+// ------------------------------
+// EXPORTAR PARA PDF
+// ------------------------------
+async function exportarPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
 
-    const tabela = document.querySelector("#tabelaPontos");
-    const linhas = [];
-    let totalHoras = 0;
-    let totalExtras = 0;
+  const tabela = document.querySelector("#tabelaPontos");
+  const linhas = [];
+  let totalHoras = 0;
+  let totalExtras = 0;
 
-    // Pega todas as linhas do tbody **exceto a linha de assinatura**
-    tabela.querySelectorAll("tbody tr:not(:last-child)").forEach(tr => {
-      const tds = tr.querySelectorAll("td");
-      const linha = Array.from(tds).map(td => td.textContent);
-      linhas.push(linha);
+  tabela.querySelectorAll("tbody tr:not(:last-child)").forEach(tr => {
+    const tds = tr.querySelectorAll("td");
+    const linha = Array.from(tds).map(td => td.textContent);
+    linhas.push(linha);
+    totalHoras += parseFloat(tds[5]?.textContent) || 0;
+    totalExtras += parseFloat(tds[6]?.textContent) || 0;
+  });
 
-      totalHoras += parseFloat(tds[5]?.textContent) || 0;
-      totalExtras += parseFloat(tds[6]?.textContent) || 0;
-    });
+  const larguraPagina = doc.internal.pageSize.getWidth();
+  doc.setFontSize(14);
+  doc.text("Relatório de Pontos", larguraPagina / 2, 20, { align: "center" });
 
-    const larguraPagina = doc.internal.pageSize.getWidth();
+  doc.autoTable({
+    head: [['Data','Entrada','Saída Almoço','Retorno','Saída','Horas Trabalhadas','Horas Extras']],
+    body: linhas,
+    startY: 30,
+    theme: 'grid'
+  });
 
-    // Título centralizado
-    doc.setFontSize(14);
-    doc.text("Relatório de Pontos", larguraPagina / 2, 20, { align: "center" });
+  let yFinal = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : 50;
+  doc.setFontSize(12);
+  doc.text(`Total Horas Trabalhadas: ${totalHoras.toFixed(2)}h`, 14, yFinal);
+  doc.text(`Total Horas Extras: ${totalExtras.toFixed(2)}h`, 14, yFinal + 10);
 
-    // Tabela
-    doc.autoTable({
-      head: [['Data','Entrada','Saída Almoço','Retorno','Saída','Horas Trabalhadas','Horas Extras']],
-      body: linhas,
-      startY: 30,
-      theme: 'grid'
-    });
+  const yLinha = yFinal + 40;
+  const margem = 40;
+  const larguraLinha = larguraPagina - margem * 2;
+  doc.setLineWidth(0.5);
+  doc.line(margem, yLinha, margem + larguraLinha, yLinha);
+  doc.text("Assinatura do Funcionário", larguraPagina / 2, yLinha + 8, { align: "center" });
 
-    // Totais
-    let yFinal = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : 50;
-    doc.setFontSize(12);
-    doc.text(`Total de Horas Trabalhadas no Mês: ${totalHoras.toFixed(2)}h`, 14, yFinal);
-    doc.text(`Total de Horas Extras no Mês: ${totalExtras.toFixed(2)}h`, 14, yFinal + 10);
+  doc.save("relatorio-pontos.pdf");
+}
 
-    // Linha de assinatura centralizada
-    const yLinha = yFinal + 40;
-    const margem = 40;
-    const larguraLinha = larguraPagina - margem * 2;
-
-    doc.setLineWidth(0.5);
-    doc.line(margem, yLinha, margem + larguraLinha, yLinha);
-    doc.text("Assinatura do Funcionário", larguraPagina / 2, yLinha + 8, { align: "center" });
-
-    doc.save("relatorio-pontos.pdf");
-  }
-
-// Função para abrir popup ao clicar em uma célula
+// ------------------------------
+// POPUP AO CLICAR NA CÉLULA
+// ------------------------------
 document.addEventListener("click", (e) => {
   if (e.target.tagName === "TD" && !e.target.closest("thead")) {
     celulaSelecionada = e.target;
+    const linha = e.target.closest("tr");
+    dataSelecionada = linha.dataset.data;
     let valor = e.target.textContent.trim();
-if (valor && /^\d{2}:\d{2}$/.test(valor)) {
-  valor += ":00"; // adiciona segundos se não existir
-}
-document.getElementById("campoValor").value = valor;
+    if (valor && /^\d{2}:\d{2}$/.test(valor)) valor += ":00";
 
-    document.getElementById("popupTitulo").textContent = "Editar Ponto";
+    document.getElementById("campoValor").value = valor;
+    document.getElementById("popupTitulo").textContent = valor ? "Editar Ponto" : "Adicionar Ponto";
     document.getElementById("popupOverlay").style.display = "flex";
   }
 });
 
-function fecharPopup() {
+// ------------------------------
+// BOTÕES DO POPUP
+// ------------------------------
+document.getElementById("btnFechar").onclick = () => {
   document.getElementById("popupOverlay").style.display = "none";
   celulaSelecionada = null;
-}
+};
 
-// Salvar ou adicionar novo valor
-function salvarAlteracao() {
+// SALVAR ALTERAÇÃO (adiciona ou edita)
+document.getElementById("btnSalvar").onclick = async () => {
+  if (!celulaSelecionada || !cpfSelecionado || !dataSelecionada) return;
   const novoValor = document.getElementById("campoValor").value.trim();
-  if (!novoValor) {
-    alert("Digite um horário válido!");
-    return;
-  }
-  if (celulaSelecionada) {
+  if (!novoValor) return alert("Digite um horário válido!");
+
+  const colunaIndex = celulaSelecionada.cellIndex;
+  const tipos = ["entrada", "almocoSaida", "almocoRetorno", "saida"];
+  const tipo = tipos[colunaIndex - 1];
+
+  try {
+    const colRef = collection(db, "pontos");
+    const q = query(colRef, where("cpf", "==", cpfSelecionado), where("data", "==", dataSelecionada));
+    const snapshot = await getDocs(q);
+
+    if (!snapshot.empty) {
+      const docRef = doc(db, "pontos", snapshot.docs[0].id);
+      await updateDoc(docRef, { [tipo]: novoValor });
+    } else {
+      await addDoc(colRef, { cpf: cpfSelecionado, data: dataSelecionada, [tipo]: novoValor });
+    }
+
     celulaSelecionada.textContent = novoValor;
+    document.getElementById("popupOverlay").style.display = "none";
+  } catch (e) {
+    console.error("Erro ao salvar:", e);
   }
-  fecharPopup();
-}
+};
 
-// Excluir valor da célula
-function excluirCelula() {
-  if (celulaSelecionada && confirm("Deseja excluir este horário?")) {
+// EXCLUIR HORÁRIO
+document.getElementById("btnExcluir").onclick = async () => {
+  if (!celulaSelecionada || !cpfSelecionado || !dataSelecionada) return;
+  if (!confirm("Deseja excluir este horário?")) return;
+
+  const colunaIndex = celulaSelecionada.cellIndex;
+  const tipos = ["entrada", "almocoSaida", "almocoRetorno", "saida"];
+  const tipo = tipos[colunaIndex - 1];
+
+  try {
+    const colRef = collection(db, "pontos");
+    const q = query(colRef, where("cpf", "==", cpfSelecionado), where("data", "==", dataSelecionada));
+    const snapshot = await getDocs(q);
+
+    if (!snapshot.empty) {
+      const docRef = doc(db, "pontos", snapshot.docs[0].id);
+      await updateDoc(docRef, { [tipo]: "" });
+    }
+
     celulaSelecionada.textContent = "";
-    fecharPopup();
+    document.getElementById("popupOverlay").style.display = "none";
+  } catch (e) {
+    console.error("Erro ao excluir:", e);
   }
-}
+};
 
+// ------------------------------
+// INICIA
+// ------------------------------
+window.buscarPontos = buscarPontos;
+window.exportarPDF = exportarPDF;
 </script>
 
-<!-- Popup para Adicionar / Editar / Excluir -->
-<div class="popup-overlay" id="popupOverlay">
-  <div class="popup">
+<!-- Popup -->
+<div id="popupOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); justify-content:center; align-items:center;">
+  <div style="background:white; padding:20px; border-radius:8px; width:300px; text-align:center;">
     <h3 id="popupTitulo">Editar Ponto</h3>
-    <input type="time" id="campoValor" step="1" placeholder="Digite o horário" />
-    <div class="botoes">
-      <button class="salvar" onclick="salvarAlteracao()">Salvar</button>
-      <button class="excluir" onclick="excluirCelula()">Excluir</button>
-      <button class="cancelar" onclick="fecharPopup()">Cancelar</button>
+    <input type="time" id="campoValor" step="1" style="width:100%; padding:8px; font-size:16px; margin-bottom:10px;">
+    <div>
+      <button id="btnSalvar" style="padding:8px 12px; margin:5px;">Salvar</button>
+      <button id="btnExcluir" style="padding:8px 12px; margin:5px;">Excluir</button>
+      <button id="btnFechar" style="padding:8px 12px; margin:5px;">Cancelar</button>
     </div>
   </div>
 </div>
