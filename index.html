@@ -261,43 +261,57 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
 <script type="module">
-  import { db } from "./firebase.js";
-  import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc } 
-    from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { db } from "./firebase.js";
+import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-  let funcionarioSelecionado = null;
-  let dataSelecionada = null;
-  let tipoSelecionado = null;
-  let docIdSelecionado = null;
-  let celulaSelecionada = null;
+let funcionarioSelecionado = null;
 
-  const buscaFuncionario = document.getElementById("buscaFuncionario");
-  const popupOverlay = document.getElementById("popupOverlay");
-  const campoValor = document.getElementById("campoValor");
+const buscaFuncionario = document.getElementById("buscaFuncionario");
+const sugestoes = document.getElementById("sugestoes");
 
-  // Eventos do popup
-  document.getElementById("btnSalvar").onclick = salvarAlteracao;
-  document.getElementById("btnExcluir").onclick = excluirCelula;
-  document.getElementById("btnFechar").onclick = fecharPopup;
+buscaFuncionario.addEventListener("input", async (e) => {
+  const valor = e.target.value.trim();
+  sugestoes.innerHTML = "";
 
-  // Event listener da busca de funcionário
-  buscaFuncionario.addEventListener("input", async (e) => {
-    const valor = e.target.value.trim();
-    const sugestoes = document.getElementById("sugestoes");
-    sugestoes.innerHTML = "";
+  if (valor.length === 0) return;
 
-    if (valor.length > 0) {
-      // Substitua aqui pelo Firebase real
+  try {
+    // Consulta no Firestore buscando por nome ou CPF que contenha o texto digitado
+    const colRef = collection(db, "funcionarios");
+    const q = query(colRef,
+      where("cpf", ">=", valor),
+      where("cpf", "<=", valor + "\uf8ff")
+    );
+    const snap = await getDocs(q);
+
+    snap.forEach(doc => {
+      const data = doc.data();
       const div = document.createElement("div");
-      div.textContent = "Funcionário Exemplo - 12345678900";
+      div.textContent = `${data.nome} - ${data.cpf}`;
+      div.style.cursor = "pointer";
+      div.style.padding = "4px 8px";
+      div.style.borderBottom = "1px solid #ddd";
+
       div.onclick = () => {
-        buscaFuncionario.value = div.textContent;
-        funcionarioSelecionado = "12345678900";
+        buscaFuncionario.value = data.nome;
+        funcionarioSelecionado = data.cpf;
         sugestoes.innerHTML = "";
       };
+
+      sugestoes.appendChild(div);
+    });
+
+    if (snap.empty) {
+      const div = document.createElement("div");
+      div.textContent = "Nenhum funcionário encontrado";
+      div.style.padding = "4px 8px";
       sugestoes.appendChild(div);
     }
-  });
+
+  } catch (err) {
+    console.error("Erro ao buscar funcionários:", err);
+  }
+});
 
   function calcularHoras(inicio, fim) {
     if (!inicio || !fim) return 0;
@@ -471,6 +485,7 @@
 
 </body>
 </html>
+
 
 
 
