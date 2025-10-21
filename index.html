@@ -264,7 +264,7 @@
   <script>
 
      let celulaSelecionada = null;
-     
+
   function calcularHoras(inicio, fim) {
     if (!inicio || !fim) return 0;
     const [h1, m1] = inicio.split(":").map(Number);
@@ -368,7 +368,12 @@
 document.addEventListener("click", (e) => {
   if (e.target.tagName === "TD" && !e.target.closest("thead")) {
     celulaSelecionada = e.target;
-    document.getElementById("campoValor").value = e.target.textContent.trim();
+    let valor = e.target.textContent.trim();
+if (valor && /^\d{2}:\d{2}$/.test(valor)) {
+  valor += ":00"; // adiciona segundos se não existir
+}
+document.getElementById("campoValor").value = valor;
+
     document.getElementById("popupTitulo").textContent = "Editar Ponto";
     document.getElementById("popupOverlay").style.display = "flex";
   }
@@ -406,7 +411,7 @@ function excluirCelula() {
 <div class="popup-overlay" id="popupOverlay">
   <div class="popup">
     <h3 id="popupTitulo">Editar Ponto</h3>
-    <input type="time" id="campoValor" placeholder="Digite o horário" />
+    <input type="time" id="campoValor" step="1" placeholder="Digite o horário" />
     <div class="botoes">
       <button class="salvar" onclick="salvarAlteracao()">Salvar</button>
       <button class="excluir" onclick="excluirCelula()">Excluir</button>
