@@ -198,14 +198,89 @@ window.exportarPDF = function () {
   doc.save(`pontos_${nomeFuncionario.replace(/\s+/g, "_")}.pdf`);
 };
 
-// ==========================
-// 🔹 POPUP DE EDIÇÃO
-// ==========================
+// ===================
+// 🔹 POPUP DE EDIÇÃO COMPLETO (com Firebase)
+// ===================
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  doc,
+  updateDoc,
+  addDoc,
+  deleteDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
 let celulaSelecionada = null;
+let cpfSelecionado = null;
 let docIdSelecionado = null;
 let dataSelecionada = null;
 let tipoSelecionado = null;
 
+// Quando buscar pontos, guarda o CPF do funcionário ativo
+window.buscarPontos = async function buscarPontos() {
+  const cpfTexto = inputBusca.value.match(/\(([^)]+)\)$/);
+  const cpf = cpfTexto ? cpfTexto[1] : inputBusca.value.trim();
+  cpfSelecionado = cpf;
+
+  const filtroDia = document.getElementById("filtroData").value;
+  const filtroMes = document.getElementById("filtroMes").value;
+
+  try {
+    const colRef = collection(db, "pontos");
+    const q = query(colRef, where("cpf", "==", cpf));
+    const snapshot = await getDocs(q);
+
+    const pontosPorData = {};
+
+    snapshot.forEach((doc) => {
+      const d = doc.data();
+      if (!d.data) return;
+
+      if (filtroDia && d.data !== filtroDia) return;
+      if (filtroMes && !d.data.startsWith(filtroMes)) return;
+
+      if (!pontosPorData[d.data]) {
+        pontosPorData[d.data] = {
+          entrada_manha: "-",
+          saida_almoco: "-",
+          retorno_almoco: "-",
+          saida_tarde: "-",
+        };
+      }
+
+      pontosPorData[d.data][d.tipo] = d.hora || "-";
+    });
+
+    const tabelaCorpo = document.querySelector("#tabelaPontos tbody");
+    tabelaCorpo.innerHTML = "";
+
+    const nomeFuncionarioEl = document.getElementById("nomeFuncionario");
+    const funcionarioNome =
+      funcionarios.find((f) => f.cpf === cpf)?.nome || "Funcionário";
+    nomeFuncionarioEl.textContent = `Funcionário: ${funcionarioNome}`;
+
+    Object.keys(pontosPorData)
+      .sort((a, b) => new Date(a) - new Date(b))
+      .forEach((data) => {
+        const ponto = pontosPorData[data];
+        tabelaCorpo.innerHTML += `
+          <tr>
+            <td>${formatarData(data)}</td>
+            <td data-tipo="entrada_manha">${ponto.entrada_manha}</td>
+            <td data-tipo="saida_almoco">${ponto.saida_almoco}</td>
+            <td data-tipo="retorno_almoco">${ponto.retorno_almoco}</td>
+            <td data-tipo="saida_tarde">${ponto.saida_tarde}</td>
+          </tr>
+        `;
+      });
+  } catch (e) {
+    console.error("Erro buscando pontos:", e);
+  }
+};
+
+// Abre o popup ao clicar em uma célula
 document.addEventListener("click", async (e) => {
   const td = e.target.closest("td");
   if (!td || td.closest("thead")) return;
@@ -215,7 +290,7 @@ document.addEventListener("click", async (e) => {
 
   celulaSelecionada = td;
   const tr = td.parentElement;
-  dataSelecionada = tr.children[0].textContent.trim();
+  dataSelecionada = tr.children[0].textContent.trim(); // dd/mm/yyyy
   tipoSelecionado = tipo;
 
   const valor = td.textContent.trim() !== "-" ? td.textContent.trim() : "";
@@ -224,40 +299,79 @@ document.addEventListener("click", async (e) => {
     ? "Editar Ponto"
     : "Adicionar Ponto";
 
-  try {
-    const q = query(
-      collection(db, "pontos"),
-      where("cpf", "==", cpfSelecionado),
-      where("data", "==", dataSelecionada.split("/").reverse().join("-")),
-      where("tipo", "==", tipoSelecionado)
-    );
-    const snap = await getDocs(q);
-    docIdSelecionado = !snap.empty ? snap.docs[0].id : null;
-  } catch (err) {
-    console.error("Erro ao buscar documento:", err);
-  }
+  // Busca o documento no Firestore (se existir)
+  const dataFirestore = dataSelecionada.split("/").reverse().join("-"); // yyyy-mm-dd
+  const q = query(
+    collection(db, "pontos"),
+    where("cpf", "==", cpfSelecionado),
+    where("data", "==", dataFirestore),
+    where("tipo", "==", tipoSelecionado)
+  );
+  const snap = await getDocs(q);
+  docIdSelecionado = snap.empty ? null : snap.docs[0].id;
 
   document.getElementById("popupOverlay").style.display = "flex";
 });
 
-// Fechar popup
 function fecharPopup() {
   document.getElementById("popupOverlay").style.display = "none";
   celulaSelecionada = null;
 }
 
-// Botões do popup
 document.getElementById("btnFechar").addEventListener("click", fecharPopup);
 
-document.getElementById("btnSalvar").addEventListener("click", () => {
-  if (celulaSelecionada) {
-    const novoValor = document.getElementById("campoValor").value.trim() || "-";
+// 🔹 SALVAR (cria ou atualiza no Firebase)
+document.getElementById("btnSalvar").addEventListener("click", async () => {
+  if (!celulaSelecionada || !cpfSelecionado) return;
+  const novoValor = document.getElementById("campoValor").value.trim();
+  if (!novoValor) return alert("Informe um horário válido!");
+
+  const dataFirestore = dataSelecionada.split("/").reverse().join("-");
+
+  try {
+    if (docIdSelecionado) {
+      // Atualiza documento existente
+      const docRef = doc(db, "pontos", docIdSelecionado);
+      await updateDoc(docRef, { hora: novoValor });
+    } else {
+      // Cria novo documento
+      await addDoc(collection(db, "pontos"), {
+        cpf: cpfSelecionado,
+        data: dataFirestore,
+        tipo: tipoSelecionado,
+        hora: novoValor,
+      });
+    }
+
     celulaSelecionada.textContent = novoValor;
+    alert("Ponto salvo com sucesso!");
+  } catch (err) {
+    console.error("Erro ao salvar ponto:", err);
+    alert("Erro ao salvar no banco de dados!");
   }
+
   fecharPopup();
 });
 
-document.getElementById("btnExcluir").addEventListener("click", () => {
-  if (celulaSelecionada) celulaSelecionada.textContent = "-";
+// 🔹 EXCLUIR (remove do Firebase)
+document.getElementById("btnExcluir").addEventListener("click", async () => {
+  if (!celulaSelecionada || !docIdSelecionado) {
+    celulaSelecionada.textContent = "-";
+    fecharPopup();
+    return;
+  }
+
+  try {
+    const docRef = doc(db, "pontos", docIdSelecionado);
+    await deleteDoc(docRef);
+    celulaSelecionada.textContent = "-";
+    alert("Ponto excluído com sucesso!");
+  } catch (err) {
+    console.error("Erro ao excluir:", err);
+    alert("Erro ao excluir no banco de dados!");
+  }
+
   fecharPopup();
 });
+
+
