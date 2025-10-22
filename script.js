@@ -7,7 +7,9 @@ import {
   where,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// Config Firebase
+// ==========================
+// 🔹 CONFIGURAÇÃO FIREBASE
+// ==========================
 const firebaseConfig = {
   apiKey: "AIzaSyCuCbBesvbrOvdzdv1cmCF7M2uaaUfWRU0",
   authDomain: "meupontoapp-d5d3b.firebaseapp.com",
@@ -20,18 +22,26 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// ==========================
+// 🔹 VARIÁVEIS GLOBAIS
+// ==========================
 const inputBusca = document.getElementById("buscaFuncionario");
 const sugestoesBox = document.getElementById("sugestoes");
 let funcionarios = [];
+let cpfSelecionado = null;
 
-// Função para formatar data yyyy-mm-dd -> dd/mm/yyyy
+// ==========================
+// 🔹 FORMATAR DATA
+// ==========================
 function formatarData(dataStr) {
   const partes = dataStr.split("-");
   if (partes.length !== 3) return dataStr;
   return `${partes[2]}/${partes[1]}/${partes[0]}`;
 }
 
-// Carrega funcionários da coleção 'funcionarios'
+// ==========================
+// 🔹 CARREGAR FUNCIONÁRIOS
+// ==========================
 async function carregarFuncionarios() {
   try {
     const colRef = collection(db, "funcionarios");
@@ -49,7 +59,9 @@ async function carregarFuncionarios() {
 }
 carregarFuncionarios();
 
-// Evento para autocomplete
+// ==========================
+// 🔹 AUTOCOMPLETE
+// ==========================
 inputBusca.addEventListener("input", () => {
   const termo = inputBusca.value.toLowerCase();
   sugestoesBox.innerHTML = "";
@@ -71,10 +83,13 @@ inputBusca.addEventListener("input", () => {
   });
 });
 
-// Buscar pontos da coleção 'pontos' filtrando pelo CPF e data/mês
+// ==========================
+// 🔹 BUSCAR PONTOS
+// ==========================
 async function buscarPontos() {
   const cpfTexto = inputBusca.value.match(/\(([^)]+)\)$/);
   const cpf = cpfTexto ? cpfTexto[1] : inputBusca.value.trim();
+  cpfSelecionado = cpf; // salva para uso no popup
 
   const filtroDia = document.getElementById("filtroData").value;
   const filtroMes = document.getElementById("filtroMes").value;
@@ -103,7 +118,6 @@ async function buscarPontos() {
       }
 
       pontosPorData[d.data][d.tipo] = d.hora || "-";
-
       if (d.foto_url) {
         pontosPorData[d.data][`${d.tipo}_foto`] = d.foto_url;
       }
@@ -113,7 +127,7 @@ async function buscarPontos() {
     tabelaCorpo.innerHTML = "";
 
     const nomeFuncionarioEl = document.getElementById("nomeFuncionario");
-    const funcionarioNome = funcionarios.find(f => f.cpf === cpf)?.nome || "Funcionário";
+    const funcionarioNome = funcionarios.find((f) => f.cpf === cpf)?.nome || "Funcionário";
     nomeFuncionarioEl.textContent = `Funcionário: ${funcionarioNome}`;
 
     Object.keys(pontosPorData)
@@ -132,7 +146,6 @@ async function buscarPontos() {
           }
         }
 
-        // Cada célula recebe um data-tipo para saber qual é
         tabelaCorpo.innerHTML += `
           <tr>
             <td>${formatarData(data)}</td>
@@ -149,7 +162,9 @@ async function buscarPontos() {
 }
 window.buscarPontos = buscarPontos;
 
-// Função para exportar tabela para PDF (sem imagens)
+// ==========================
+// 🔹 EXPORTAR PDF
+// ==========================
 window.exportarPDF = function () {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
@@ -160,14 +175,14 @@ window.exportarPDF = function () {
   doc.text(nomeFuncionario, 14, 20);
 
   const headers = [];
-  document.querySelectorAll("#tabelaPontos thead tr:nth-child(2) th").forEach(th => {
+  document.querySelectorAll("#tabelaPontos thead tr:nth-child(2) th").forEach((th) => {
     headers.push(th.textContent);
   });
 
   const data = [];
-  document.querySelectorAll("#tabelaPontos tbody tr").forEach(tr => {
+  document.querySelectorAll("#tabelaPontos tbody tr").forEach((tr) => {
     const row = [];
-    tr.querySelectorAll("td").forEach(td => {
+    tr.querySelectorAll("td").forEach((td) => {
       row.push(td.textContent);
     });
     data.push(row);
@@ -177,37 +192,20 @@ window.exportarPDF = function () {
     head: [headers],
     body: data,
     startY: 30,
-    theme: 'striped',
+    theme: "striped",
   });
 
   doc.save(`pontos_${nomeFuncionario.replace(/\s+/g, "_")}.pdf`);
 };
 
-// ===================
+// ==========================
 // 🔹 POPUP DE EDIÇÃO
-// ===================
+// ==========================
 let celulaSelecionada = null;
-
-// Abre o popup ao clicar em uma célula
-// ===================
-// 🔹 POPUP DE EDIÇÃO (corrigido)
-// ===================
-let celulaSelecionada = null;
-let cpfSelecionado = null;
 let docIdSelecionado = null;
 let dataSelecionada = null;
 let tipoSelecionado = null;
 
-// Ao buscar pontos, guardamos o CPF pesquisado
-async function buscarPontos() {
-  const cpfTexto = inputBusca.value.match(/\(([^)]+)\)$/);
-  const cpf = cpfTexto ? cpfTexto[1] : inputBusca.value.trim();
-  cpfSelecionado = cpf; // 🔹 salva o CPF para uso posterior no popup
-  ...
-}
-window.buscarPontos = buscarPontos;
-
-// Abre o popup ao clicar em uma célula (mesmo vazia)
 document.addEventListener("click", async (e) => {
   const td = e.target.closest("td");
   if (!td || td.closest("thead")) return;
@@ -226,28 +224,23 @@ document.addEventListener("click", async (e) => {
     ? "Editar Ponto"
     : "Adicionar Ponto";
 
-  // 🔹 Busca o registro correspondente no Firestore, se houver
-  let docId = null;
   try {
     const q = query(
       collection(db, "pontos"),
       where("cpf", "==", cpfSelecionado),
-      where("data", "==", dataSelecionada.split("/").reverse().join("-")), // converte pra yyyy-mm-dd
+      where("data", "==", dataSelecionada.split("/").reverse().join("-")),
       where("tipo", "==", tipoSelecionado)
     );
     const snap = await getDocs(q);
-    if (!snap.empty) docId = snap.docs[0].id;
+    docIdSelecionado = !snap.empty ? snap.docs[0].id : null;
   } catch (err) {
     console.error("Erro ao buscar documento:", err);
   }
 
-  docIdSelecionado = docId;
-
-  // Mostra o popup
   document.getElementById("popupOverlay").style.display = "flex";
 });
 
-// Fecha o popup
+// Fechar popup
 function fecharPopup() {
   document.getElementById("popupOverlay").style.display = "none";
   celulaSelecionada = null;
@@ -268,6 +261,3 @@ document.getElementById("btnExcluir").addEventListener("click", () => {
   if (celulaSelecionada) celulaSelecionada.textContent = "-";
   fecharPopup();
 });
-
-
-
