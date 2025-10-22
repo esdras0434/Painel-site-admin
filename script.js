@@ -27,6 +27,14 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // ==========================
+// 🔹 Painel de Pontos Pendentes
+// ==========================
+const painelPendentes = document.getElementById("painelPendentes");
+const listaPendentes = document.getElementById("listaPendentes");
+const btnAbrirPendentes = document.getElementById("btnAbrirPendentes");
+const btnFecharPendentes = document.getElementById("btnFecharPendentes");
+
+// ==========================
 // 🔹 Variáveis globais
 // ==========================
 const inputBusca = document.getElementById("buscaFuncionario");
@@ -263,6 +271,76 @@ document.getElementById("btnExcluir").addEventListener("click", async () => {
 
   fecharPopup();
 });
+
+btnAbrirPendentes.addEventListener("click", carregarPendentes);
+btnFecharPendentes.addEventListener("click", () =>
+  painelPendentes.classList.remove("ativo")
+);
+
+async function carregarPendentes() {
+  painelPendentes.classList.add("ativo");
+  listaPendentes.innerHTML = "<p>Carregando...</p>";
+
+  const hoje = new Date().toISOString().split("T")[0]; // formato YYYY-MM-DD
+  const colRef = collection(db, "pontos");
+
+  try {
+    const snapshot = await getDocs(colRef);
+
+    // Mapeia todos os pontos por CPF e data
+    const pontosHoje = {};
+    snapshot.forEach((docSnap) => {
+      const d = docSnap.data();
+      if (d.data === hoje) {
+        if (!pontosHoje[d.cpf]) pontosHoje[d.cpf] = {};
+        pontosHoje[d.cpf][d.tipo] = d.hora;
+      }
+    });
+
+    // Verifica pendências
+    const pendentes = funcionarios
+      .filter((f) => {
+        const p = pontosHoje[f.cpf] || {};
+        const faltando = [
+          "entrada_manha",
+          "saida_almoco",
+          "retorno_almoco",
+          "saida_tarde",
+        ].filter((t) => !p[t]);
+        return faltando.length > 0;
+      })
+      .map((f) => {
+        const p = pontosHoje[f.cpf] || {};
+        const faltando = [
+          "entrada_manha",
+          "saida_almoco",
+          "retorno_almoco",
+          "saida_tarde",
+        ].filter((t) => !p[t]);
+        return { nome: f.nome, cpf: f.cpf, faltando };
+      });
+
+    if (pendentes.length === 0) {
+      listaPendentes.innerHTML = "<p>Todos os funcionários estão em dia ✅</p>";
+      return;
+    }
+
+    listaPendentes.innerHTML = pendentes
+      .map(
+        (p) => `
+        <div>
+          <strong>${p.nome}</strong> (${p.cpf})<br>
+          <small>Faltando: ${p.faltando.join(", ")}</small>
+        </div>
+      `
+      )
+      .join("");
+  } catch (e) {
+    console.error("Erro ao carregar pendentes:", e);
+    listaPendentes.innerHTML = "<p>Erro ao carregar dados.</p>";
+  }
+}
+
 
 
 
