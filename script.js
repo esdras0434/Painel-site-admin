@@ -170,10 +170,9 @@ document.addEventListener("click", async (e) => {
 
   celulaSelecionada = td;
   const tr = td.parentElement;
-  dataSelecionada = tr.children[0].textContent.trim(); // dd/mm/yyyy
+  dataSelecionada = tr.children[0].textContent.trim();
   tipoSelecionado = tipo;
 
-  // Valor atual da célula
   const valor = td.textContent.trim() !== "-" ? td.textContent.trim() : "";
   document.getElementById("campoValor").value = valor;
   document.getElementById("popupTitulo").textContent = valor
@@ -182,7 +181,6 @@ document.addEventListener("click", async (e) => {
 
   const dataFirestore = dataSelecionada.split("/").reverse().join("-");
 
-  // Busca do documento correspondente no Firestore
   try {
     const q = query(
       collection(db, "pontos"),
@@ -197,17 +195,10 @@ document.addEventListener("click", async (e) => {
     docIdSelecionado = null;
   }
 
-  // Exibe o popup
-  const overlay = document.getElementById("popupOverlay");
+  // Somente abre o popup
   overlay.style.display = "flex";
-
-  // Adiciona listener para fechar ao clicar fora do popup
-  overlay.addEventListener("click", (event) => {
-    if (event.target === overlay) {
-      fecharPopup();
-    }
-  });
 });
+
 
 
 function fecharPopup() {
@@ -263,5 +254,6 @@ document.getElementById("btnExcluir").addEventListener("click", async () => {
 
   fecharPopup();
 });
+
 
 
