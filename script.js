@@ -27,7 +27,7 @@ let funcionarios = [];
 // Função para formatar data yyyy-mm-dd -> dd/mm/yyyy
 function formatarData(dataStr) {
   const partes = dataStr.split("-");
-  if (partes.length !== 3) return dataStr; // fallback
+  if (partes.length !== 3) return dataStr;
   return `${partes[2]}/${partes[1]}/${partes[0]}`;
 }
 
@@ -132,13 +132,14 @@ async function buscarPontos() {
           }
         }
 
+        // Cada célula recebe um data-tipo para saber qual é
         tabelaCorpo.innerHTML += `
           <tr>
             <td>${formatarData(data)}</td>
-            <td>${celula("entrada_manha")}</td>
-            <td>${celula("saida_almoco")}</td>
-            <td>${celula("retorno_almoco")}</td>
-            <td>${celula("saida_tarde")}</td>
+            <td data-tipo="entrada_manha">${celula("entrada_manha")}</td>
+            <td data-tipo="saida_almoco">${celula("saida_almoco")}</td>
+            <td data-tipo="retorno_almoco">${celula("retorno_almoco")}</td>
+            <td data-tipo="saida_tarde">${celula("saida_tarde")}</td>
           </tr>
         `;
       });
@@ -181,3 +182,46 @@ window.exportarPDF = function () {
 
   doc.save(`pontos_${nomeFuncionario.replace(/\s+/g, "_")}.pdf`);
 };
+
+// ===================
+// 🔹 POPUP DE EDIÇÃO
+// ===================
+let celulaSelecionada = null;
+
+// Abre o popup ao clicar em uma célula
+document.addEventListener("click", (e) => {
+  if (e.target.tagName === "TD" && !e.target.closest("thead")) {
+    celulaSelecionada = e.target;
+    const valor = celulaSelecionada.textContent.trim();
+
+    const popup = document.getElementById("popupOverlay");
+    const campo = document.getElementById("campoValor");
+    const titulo = document.getElementById("popupTitulo");
+
+    campo.value = valor !== "-" ? valor : "";
+    titulo.textContent = valor && valor !== "-" ? "Editar Ponto" : "Adicionar Ponto";
+    popup.style.display = "flex";
+  }
+});
+
+// Fecha o popup
+function fecharPopup() {
+  document.getElementById("popupOverlay").style.display = "none";
+  celulaSelecionada = null;
+}
+
+// Botões do popup
+document.getElementById("btnFechar").addEventListener("click", fecharPopup);
+
+document.getElementById("btnSalvar").addEventListener("click", () => {
+  if (celulaSelecionada) {
+    const novoValor = document.getElementById("campoValor").value.trim() || "-";
+    celulaSelecionada.textContent = novoValor;
+  }
+  fecharPopup();
+});
+
+document.getElementById("btnExcluir").addEventListener("click", () => {
+  if (celulaSelecionada) celulaSelecionada.textContent = "-";
+  fecharPopup();
+});
