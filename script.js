@@ -162,6 +162,7 @@ let tipoSelecionado = null;
 let docIdSelecionado = null;
 
 document.addEventListener("click", async (e) => {
+  // Verifica se clicou numa célula de ponto
   const td = e.target.closest("td");
   if (!td || td.closest("thead")) return;
 
@@ -173,6 +174,7 @@ document.addEventListener("click", async (e) => {
   dataSelecionada = tr.children[0].textContent.trim(); // dd/mm/yyyy
   tipoSelecionado = tipo;
 
+  // Valor atual da célula
   const valor = td.textContent.trim() !== "-" ? td.textContent.trim() : "";
   document.getElementById("campoValor").value = valor;
   document.getElementById("popupTitulo").textContent = valor
@@ -181,6 +183,7 @@ document.addEventListener("click", async (e) => {
 
   const dataFirestore = dataSelecionada.split("/").reverse().join("-");
 
+  // Busca do documento correspondente no Firestore
   try {
     const q = query(
       collection(db, "pontos"),
@@ -192,10 +195,21 @@ document.addEventListener("click", async (e) => {
     docIdSelecionado = snap.empty ? null : snap.docs[0].id;
   } catch (err) {
     console.error("Erro ao buscar documento:", err);
+    docIdSelecionado = null;
   }
 
-  document.getElementById("popupOverlay").style.display = "flex";
+  // Exibe o popup
+  const overlay = document.getElementById("popupOverlay");
+  overlay.style.display = "flex";
+
+  // Adiciona listener para fechar ao clicar fora do popup
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay) {
+      fecharPopup();
+    }
+  });
 });
+
 
 function fecharPopup() {
   document.getElementById("popupOverlay").style.display = "none";
@@ -250,3 +264,4 @@ document.getElementById("btnExcluir").addEventListener("click", async () => {
 
   fecharPopup();
 });
+
