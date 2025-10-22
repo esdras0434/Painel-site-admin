@@ -189,19 +189,42 @@ window.exportarPDF = function () {
 let celulaSelecionada = null;
 
 // Abre o popup ao clicar em uma célula
-document.addEventListener("click", (e) => {
-  if (e.target.tagName === "TD" && !e.target.closest("thead")) {
-    celulaSelecionada = e.target;
-    const valor = celulaSelecionada.textContent.trim();
+// ========================
+// 🔹 POPUP DE EDIÇÃO (corrigido)
+// ========================
+document.addEventListener("click", async (e) => {
+  // garante que clicou em uma célula válida da tabela (exceto cabeçalho)
+  const td = e.target.closest("td");
+  if (!td || td.closest("thead")) return;
 
-    const popup = document.getElementById("popupOverlay");
-    const campo = document.getElementById("campoValor");
-    const titulo = document.getElementById("popupTitulo");
+  // identifica se a célula tem um tipo válido
+  const tipo = td.dataset.tipo;
+  if (!tipo) return;
 
-    campo.value = valor !== "-" ? valor : "";
-    titulo.textContent = valor && valor !== "-" ? "Editar Ponto" : "Adicionar Ponto";
-    popup.style.display = "flex";
-  }
+  celulaSelecionada = td;
+  const tr = td.parentElement;
+  dataSelecionada = tr.children[0].textContent.trim();
+  tipoSelecionado = tipo;
+
+  // pega o valor atual
+  const valor = td.textContent.trim() !== "-" ? td.textContent.trim() : "";
+  document.getElementById("campoValor").value = valor;
+  document.getElementById("popupTitulo").textContent = valor
+    ? "Editar Ponto"
+    : "Adicionar Ponto";
+
+  // busca o documento correspondente no Firestore (se existir)
+  const q = query(
+    collection(db, "pontos"),
+    where("cpf", "==", funcionarioSelecionado),
+    where("data", "==", dataSelecionada),
+    where("tipo", "==", tipoSelecionado)
+  );
+  const snap = await getDocs(q);
+  docIdSelecionado = snap.empty ? null : snap.docs[0].id;
+
+  // mostra o popup
+  document.getElementById("popupOverlay").style.display = "flex";
 });
 
 // Fecha o popup
@@ -225,3 +248,4 @@ document.getElementById("btnExcluir").addEventListener("click", () => {
   if (celulaSelecionada) celulaSelecionada.textContent = "-";
   fecharPopup();
 });
+
