@@ -98,17 +98,19 @@ th {
 
 /* === POPUP (modal flutuante) === */
 .popup-overlay {
-  display: none; /* escondido até clicar */
+  display: none; /* inicial escondido */
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.5); /* fundo escuro */
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex; /* flex para centralizar */
   justify-content: center;
   align-items: center;
   z-index: 9999;
 }
+
 
 .popup {
   background: #fff;
@@ -175,4 +177,5 @@ th {
   from { opacity: 0; transform: scale(0.9); }
   to { opacity: 1; transform: scale(1); }
 }
+
 
