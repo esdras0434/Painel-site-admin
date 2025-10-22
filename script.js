@@ -189,15 +189,29 @@ window.exportarPDF = function () {
 let celulaSelecionada = null;
 
 // Abre o popup ao clicar em uma célula
-// ========================
+// ===================
 // 🔹 POPUP DE EDIÇÃO (corrigido)
-// ========================
+// ===================
+let celulaSelecionada = null;
+let cpfSelecionado = null;
+let docIdSelecionado = null;
+let dataSelecionada = null;
+let tipoSelecionado = null;
+
+// Ao buscar pontos, guardamos o CPF pesquisado
+async function buscarPontos() {
+  const cpfTexto = inputBusca.value.match(/\(([^)]+)\)$/);
+  const cpf = cpfTexto ? cpfTexto[1] : inputBusca.value.trim();
+  cpfSelecionado = cpf; // 🔹 salva o CPF para uso posterior no popup
+  ...
+}
+window.buscarPontos = buscarPontos;
+
+// Abre o popup ao clicar em uma célula (mesmo vazia)
 document.addEventListener("click", async (e) => {
-  // garante que clicou em uma célula válida da tabela (exceto cabeçalho)
   const td = e.target.closest("td");
   if (!td || td.closest("thead")) return;
 
-  // identifica se a célula tem um tipo válido
   const tipo = td.dataset.tipo;
   if (!tipo) return;
 
@@ -206,24 +220,30 @@ document.addEventListener("click", async (e) => {
   dataSelecionada = tr.children[0].textContent.trim();
   tipoSelecionado = tipo;
 
-  // pega o valor atual
   const valor = td.textContent.trim() !== "-" ? td.textContent.trim() : "";
   document.getElementById("campoValor").value = valor;
   document.getElementById("popupTitulo").textContent = valor
     ? "Editar Ponto"
     : "Adicionar Ponto";
 
-  // busca o documento correspondente no Firestore (se existir)
-  const q = query(
-    collection(db, "pontos"),
-    where("cpf", "==", funcionarioSelecionado),
-    where("data", "==", dataSelecionada),
-    where("tipo", "==", tipoSelecionado)
-  );
-  const snap = await getDocs(q);
-  docIdSelecionado = snap.empty ? null : snap.docs[0].id;
+  // 🔹 Busca o registro correspondente no Firestore, se houver
+  let docId = null;
+  try {
+    const q = query(
+      collection(db, "pontos"),
+      where("cpf", "==", cpfSelecionado),
+      where("data", "==", dataSelecionada.split("/").reverse().join("-")), // converte pra yyyy-mm-dd
+      where("tipo", "==", tipoSelecionado)
+    );
+    const snap = await getDocs(q);
+    if (!snap.empty) docId = snap.docs[0].id;
+  } catch (err) {
+    console.error("Erro ao buscar documento:", err);
+  }
 
-  // mostra o popup
+  docIdSelecionado = docId;
+
+  // Mostra o popup
   document.getElementById("popupOverlay").style.display = "flex";
 });
 
@@ -248,4 +268,6 @@ document.getElementById("btnExcluir").addEventListener("click", () => {
   if (celulaSelecionada) celulaSelecionada.textContent = "-";
   fecharPopup();
 });
+
+
 
