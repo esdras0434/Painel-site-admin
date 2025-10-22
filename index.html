@@ -256,49 +256,48 @@
   </tbody>
 </table>
 
-  <!-- Bibliotecas jsPDF e AutoTable -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+ <!-- Bibliotecas jsPDF e AutoTable -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
-  <script type="module" src="script.js"></script>
-  <script>
+<script type="module">
 
-  import { db } from "./firebase.js";
-  import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { db } from "./firebase.js";
+import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc } 
+  from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-  let funcionarioSelecionado = null; // CPF do funcionário selecionado
-  let dataSelecionada = null;        // Data da linha clicada
-  let tipoSelecionado = null;        // Tipo da coluna (entrada, saida, etc.)
-  let docIdSelecionado = null;       // ID do documento Firestore (se já existir)
+let funcionarioSelecionado = null; // CPF do funcionário selecionado
+let dataSelecionada = null;        // Data da linha clicada
+let tipoSelecionado = null;        // Tipo da coluna (entrada, saída, etc.)
+let docIdSelecionado = null;       // ID do documento Firestore
+let celulaSelecionada = null;
 
+// =============== FUNÇÕES PRINCIPAIS ===============
 
-     let celulaSelecionada = null;
+function calcularHoras(inicio, fim) {
+  if (!inicio || !fim) return 0;
+  const [h1, m1] = inicio.split(":").map(Number);
+  const [h2, m2] = fim.split(":").map(Number);
+  return (h2 * 60 + m2 - (h1 * 60 + m1)) / 60;
+}
 
-  function calcularHoras(inicio, fim) {
-    if (!inicio || !fim) return 0;
-    const [h1, m1] = inicio.split(":").map(Number);
-    const [h2, m2] = fim.split(":").map(Number);
-    return (h2*60+m2 - (h1*60+m1)) / 60;
-  }
+function buscarPontos() {
+  const tbody = document.querySelector("#tabelaPontos tbody");
+  tbody.innerHTML = "";
 
-  function buscarPontos() {
-    const tbody = document.querySelector("#tabelaPontos tbody");
-    tbody.innerHTML = ""; // limpa linhas antigas, incluindo linha de assinatura
+  const pontos = [
+    {data:"2025-08-01", entrada:"08:00", almocoSaida:"12:00", almocoRetorno:"13:00", saida:"17:30"},
+    {data:"2025-08-02", entrada:"08:15", almocoSaida:"12:05", almocoRetorno:"13:00", saida:"18:20"},
+    {data:"2025-08-03", entrada:"08:10", almocoSaida:"12:00", almocoRetorno:"13:15", saida:"17:00"}
+  ];
 
-    // Exemplo de dados simulados
-    const pontos = [
-      {data:"2025-08-01", entrada:"08:00", almocoSaida:"12:00", almocoRetorno:"13:00", saida:"17:30"},
-      {data:"2025-08-02", entrada:"08:15", almocoSaida:"12:05", almocoRetorno:"13:00", saida:"18:20"},
-      {data:"2025-08-03", entrada:"08:10", almocoSaida:"12:00", almocoRetorno:"13:15", saida:"17:00"}
-    ];
+  pontos.forEach(p => {
+    const horasManha = calcularHoras(p.entrada, p.almocoSaida);
+    const horasTarde = calcularHoras(p.almocoRetorno, p.saida);
+    const totalDia = horasManha + horasTarde;
+    const extras = totalDia > 8 ? (totalDia - 8) : 0;
 
-    pontos.forEach(p => {
-      const horasManha = calcularHoras(p.entrada, p.almocoSaida);
-      const horasTarde = calcularHoras(p.almocoRetorno, p.saida);
-      const totalDia = horasManha + horasTarde;
-      const extras = totalDia > 8 ? (totalDia - 8) : 0;
-
-      const tr = document.createElement("tr");
+    const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${p.data}</td>
       <td data-tipo="entrada">${p.entrada}</td>
@@ -309,96 +308,76 @@
       <td>${extras.toFixed(2)}</td>
     `;
     tbody.appendChild(tr);
+  });
 
-    });
+  const assinatura = document.createElement("tr");
+  assinatura.innerHTML = `
+    <td colspan="7" style="text-align: center; padding-top: 40px;">
+      <div style="border-top: 1px solid #000; width: 300px; margin: 0 auto;"></div>
+      <span>Assinatura do Funcionário</span>
+    </td>
+  `;
+  tbody.appendChild(assinatura);
+}
 
-    // Recriar a linha de assinatura sempre no final
-    const assinatura = document.createElement("tr");
-    assinatura.innerHTML = `
-      <td colspan="7" style="text-align: center; padding-top: 40px;">
-        <div style="border-top: 1px solid #000; width: 300px; margin: 0 auto;"></div>
-        <span>Assinatura do Funcionário</span>
-      </td>
-    `;
-    tbody.appendChild(assinatura);
-  }
+async function exportarPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
 
-  async function exportarPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+  const tabela = document.querySelector("#tabelaPontos");
+  const linhas = [];
+  let totalHoras = 0;
+  let totalExtras = 0;
 
-    const tabela = document.querySelector("#tabelaPontos");
-    const linhas = [];
-    let totalHoras = 0;
-    let totalExtras = 0;
+  tabela.querySelectorAll("tbody tr:not(:last-child)").forEach(tr => {
+    const tds = tr.querySelectorAll("td");
+    const linha = Array.from(tds).map(td => td.textContent);
+    linhas.push(linha);
+    totalHoras += parseFloat(tds[5]?.textContent) || 0;
+    totalExtras += parseFloat(tds[6]?.textContent) || 0;
+  });
 
-    // Pega todas as linhas do tbody **exceto a linha de assinatura**
-    tabela.querySelectorAll("tbody tr:not(:last-child)").forEach(tr => {
-      const tds = tr.querySelectorAll("td");
-      const linha = Array.from(tds).map(td => td.textContent);
-      linhas.push(linha);
+  const larguraPagina = doc.internal.pageSize.getWidth();
+  doc.setFontSize(14);
+  doc.text("Relatório de Pontos", larguraPagina / 2, 20, { align: "center" });
 
-      totalHoras += parseFloat(tds[5]?.textContent) || 0;
-      totalExtras += parseFloat(tds[6]?.textContent) || 0;
-    });
+  doc.autoTable({
+    head: [['Data','Entrada','Saída Almoço','Retorno','Saída','Horas Trabalhadas','Horas Extras']],
+    body: linhas,
+    startY: 30,
+    theme: 'grid'
+  });
 
-    const larguraPagina = doc.internal.pageSize.getWidth();
+  let yFinal = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : 50;
+  doc.setFontSize(12);
+  doc.text(`Total de Horas Trabalhadas no Mês: ${totalHoras.toFixed(2)}h`, 14, yFinal);
+  doc.text(`Total de Horas Extras no Mês: ${totalExtras.toFixed(2)}h`, 14, yFinal + 10);
 
-    // Título centralizado
-    doc.setFontSize(14);
-    doc.text("Relatório de Pontos", larguraPagina / 2, 20, { align: "center" });
+  const yLinha = yFinal + 40;
+  const margem = 40;
+  const larguraLinha = larguraPagina - margem * 2;
+  doc.setLineWidth(0.5);
+  doc.line(margem, yLinha, margem + larguraLinha, yLinha);
+  doc.text("Assinatura do Funcionário", larguraPagina / 2, yLinha + 8, { align: "center" });
 
-    // Tabela
-    doc.autoTable({
-      head: [['Data','Entrada','Saída Almoço','Retorno','Saída','Horas Trabalhadas','Horas Extras']],
-      body: linhas,
-      startY: 30,
-      theme: 'grid'
-    });
+  doc.save("relatorio-pontos.pdf");
+}
 
-    // Totais
-    let yFinal = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : 50;
-    doc.setFontSize(12);
-    doc.text(`Total de Horas Trabalhadas no Mês: ${totalHoras.toFixed(2)}h`, 14, yFinal);
-    doc.text(`Total de Horas Extras no Mês: ${totalExtras.toFixed(2)}h`, 14, yFinal + 10);
+// =============== POPUP ===============
 
-    // Linha de assinatura centralizada
-    const yLinha = yFinal + 40;
-    const margem = 40;
-    const larguraLinha = larguraPagina - margem * 2;
+function abrirPopupPonto(celula) {
+  celulaSelecionada = celula;
+  const tr = celula.closest("tr");
+  dataSelecionada = tr.children[0].textContent.trim();
+  tipoSelecionado = celula.dataset.tipo;
 
-    doc.setLineWidth(0.5);
-    doc.line(margem, yLinha, margem + larguraLinha, yLinha);
-    doc.text("Assinatura do Funcionário", larguraPagina / 2, yLinha + 8, { align: "center" });
+  let valor = celula.textContent.trim();
+  if (valor && /^\d{2}:\d{2}$/.test(valor)) valor += ":00";
+  document.getElementById("campoValor").value = valor;
+  document.getElementById("popupTitulo").textContent = valor ? "Editar Ponto" : "Adicionar Ponto";
 
-    doc.save("relatorio-pontos.pdf");
-  }
-
-document.addEventListener("click", async (e) => {
-  if (e.target.tagName === "TD" && !e.target.closest("thead")) {
-    abrirPopupPonto(e.target);
-    dataSelecionada = tr.children[0].textContent.trim();
-    tipoSelecionado = e.target.dataset.tipo;
-    celulaSelecionada = e.target;
-
-    let valor = e.target.textContent.trim();
-    if (valor && /^\d{2}:\d{2}$/.test(valor)) valor += ":00";
-    document.getElementById("campoValor").value = valor;
-    document.getElementById("popupTitulo").textContent = valor ? "Editar Ponto" : "Adicionar Ponto";
-
-    // Busca ponto existente no Firebase
-    const q = query(collection(db, "pontos"),
-      where("cpf", "==", funcionarioSelecionado),
-      where("data", "==", dataSelecionada),
-      where("tipo", "==", tipoSelecionado)
-    );
-    const snap = await getDocs(q);
-    docIdSelecionado = snap.empty ? null : snap.docs[0].id;
-
-    document.getElementById("popupOverlay").style.display = "flex";
-  }
-});
-
+  document.getElementById("popupOverlay").style.display = "flex";
+}
 
 function fecharPopup() {
   document.getElementById("popupOverlay").style.display = "none";
@@ -414,13 +393,10 @@ async function salvarAlteracao() {
 
   try {
     const colRef = collection(db, "pontos");
-
     if (docIdSelecionado) {
-      // Editar ponto existente
       const docRef = doc(db, "pontos", docIdSelecionado);
       await updateDoc(docRef, { hora: novoValor });
     } else {
-      // Adicionar novo ponto
       await addDoc(colRef, {
         cpf: funcionarioSelecionado,
         data: dataSelecionada,
@@ -428,7 +404,6 @@ async function salvarAlteracao() {
         hora: novoValor
       });
     }
-
     celulaSelecionada.textContent = novoValor;
     alert("Ponto salvo com sucesso!");
     fecharPopup();
@@ -437,7 +412,6 @@ async function salvarAlteracao() {
     alert("Erro ao salvar ponto.");
   }
 }
-
 
 async function excluirCelula() {
   if (!celulaSelecionada || !confirm("Deseja excluir este horário?")) return;
@@ -454,21 +428,26 @@ async function excluirCelula() {
   }
 }
 
-// Listener para clique e toque
-["click", "touchstart"].forEach(evt =>
-  document.addEventListener(evt, (e) => {
-    if (e.target.tagName === "TD" && !e.target.closest("thead")) {
-      abrirPopupPonto(e.target);
-    }
-  })
-);
+// =============== EVENTOS ===============
 
+document.addEventListener("click", (e) => {
+  if (e.target.tagName === "TD" && !e.target.closest("thead")) {
+    abrirPopupPonto(e.target);
+  }
+});
+
+document.getElementById("btnSalvar").addEventListener("click", salvarAlteracao);
+document.getElementById("btnExcluir").addEventListener("click", excluirCelula);
+document.getElementById("btnFechar").addEventListener("click", fecharPopup);
+document.getElementById("btnExportarPDF").addEventListener("click", exportarPDF);
+
+// Chamada inicial
+buscarPontos();
 
 </script>
 
-<!-- Popup para Adicionar / Editar / Excluir -->
-<!-- Popup para Adicionar / Editar / Excluir -->
-<div id="popupOverlay" class="popup-overlay">
+<!-- Popup -->
+<div id="popupOverlay" class="popup-overlay" style="display:none;">
   <div class="popup">
     <h3 id="popupTitulo">Editar Ponto</h3>
     <input type="time" id="campoValor" step="1">
@@ -481,8 +460,10 @@ async function excluirCelula() {
 </div>
 
 
+
 </body>
 </html>
+
 
 
 
