@@ -33,6 +33,8 @@ const inputBusca = document.getElementById("buscaFuncionario");
 const sugestoesBox = document.getElementById("sugestoes");
 let funcionarios = [];
 let cpfSelecionado = null;
+const overlay = document.getElementById("popupOverlay");
+
 
 // ==========================
 // 🔹 Funções auxiliares
@@ -161,6 +163,12 @@ let dataSelecionada = null;
 let tipoSelecionado = null;
 let docIdSelecionado = null;
 
+overlay.addEventListener("click", (event) => {
+  if (event.target === overlay) {
+    fecharPopup();
+  }
+});
+
 document.addEventListener("click", async (e) => {
   const td = e.target.closest("td");
   if (!td || td.closest("thead")) return;
@@ -255,6 +263,7 @@ document.getElementById("btnExcluir").addEventListener("click", async () => {
 
   fecharPopup();
 });
+
 
 
 
