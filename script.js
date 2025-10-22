@@ -162,7 +162,6 @@ let tipoSelecionado = null;
 let docIdSelecionado = null;
 
 document.addEventListener("click", async (e) => {
-  // Verifica se clicou numa célula de ponto
   const td = e.target.closest("td");
   if (!td || td.closest("thead")) return;
 
@@ -264,4 +263,5 @@ document.getElementById("btnExcluir").addEventListener("click", async () => {
 
   fecharPopup();
 });
+
 
