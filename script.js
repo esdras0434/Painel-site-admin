@@ -201,6 +201,7 @@ document.addEventListener("click", async (e) => {
 
 
 
+
 function fecharPopup() {
   document.getElementById("popupOverlay").style.display = "none";
   celulaSelecionada = null;
@@ -254,6 +255,7 @@ document.getElementById("btnExcluir").addEventListener("click", async () => {
 
   fecharPopup();
 });
+
 
 
 
