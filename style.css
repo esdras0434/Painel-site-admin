@@ -95,3 +95,84 @@ th {
 .autocomplete-box div:hover {
   background-color: #f0f0f0;
 }
+
+/* === POPUP (modal flutuante) === */
+.popup-overlay {
+  display: none; /* escondido até clicar */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* fundo escuro */
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.popup {
+  background: #fff;
+  padding: 20px 25px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  max-width: 350px;
+  width: 90%;
+  text-align: center;
+  animation: popupFadeIn 0.2s ease-in-out;
+}
+
+.popup h3 {
+  margin-bottom: 15px;
+  font-size: 1.2em;
+  color: #333;
+}
+
+.popup input[type="time"] {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 15px;
+  font-size: 1em;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.popup .botoes {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.popup button {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 1em;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.popup button.salvar {
+  background-color: #4caf50;
+  color: white;
+}
+
+.popup button.excluir {
+  background-color: #f44336;
+  color: white;
+}
+
+.popup button.cancelar {
+  background-color: #999;
+  color: white;
+}
+
+.popup button:hover {
+  opacity: 0.9;
+}
+
+@keyframes popupFadeIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
