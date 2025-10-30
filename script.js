@@ -94,7 +94,7 @@ inputBusca.addEventListener("input", () => {
 });
 
 // ==========================
-// 🔹 Buscar pontos
+// 🔹 Buscar pontos (VERSÃO ATUALIZADA)
 // ==========================
 async function buscarPontos() {
   const cpfTexto = inputBusca.value.match(/\(([^)]+)\)$/);
@@ -106,8 +106,15 @@ async function buscarPontos() {
     return;
   }
 
-  const filtroDia = document.getElementById("filtroData").value;
-  const filtroMes = document.getElementById("filtroMes").value;
+  // O filtro de mês agora é obrigatório
+  const filtroMes = document.getElementById("filtroMes").value; // Formato "YYYY-MM"
+  if (!filtroMes) {
+    alert("Por favor, selecione um MÊS para gerar o relatório completo.");
+    return;
+  }
+
+  // O filtro de dia específico não será usado, pois queremos o mês inteiro
+  // const filtroDia = document.getElementById("filtroData").value;
 
   try {
     const colRef = collection(db, "pontos");
@@ -116,11 +123,12 @@ async function buscarPontos() {
 
     const pontosPorData = {};
 
+    // 1. Coletar os pontos existentes do Firebase para o mês selecionado
     snapshot.forEach((doc) => {
       const d = doc.data();
       if (!d.data) return;
 
-      if (filtroDia && d.data !== filtroDia) return;
+      // Filtra apenas os pontos do mês selecionado
       if (filtroMes && !d.data.startsWith(filtroMes)) return;
 
       if (!pontosPorData[d.data]) {
@@ -131,7 +139,6 @@ async function buscarPontos() {
           saida_tarde: "-",
         };
       }
-
       pontosPorData[d.data][d.tipo] = d.hora || "-";
     });
 
@@ -143,20 +150,49 @@ async function buscarPontos() {
       funcionarios.find((f) => f.cpf === cpf)?.nome || "Funcionário";
     nomeFuncionarioEl.textContent = `Funcionário: ${funcionarioNome}`;
 
-    Object.keys(pontosPorData)
-      .sort((a, b) => new Date(a) - new Date(b))
-      .forEach((data) => {
-        const ponto = pontosPorData[data];
-        tabelaCorpo.innerHTML += `
-          <tr>
-            <td>${formatarData(data)}</td>
-            <td data-tipo="entrada_manha">${ponto.entrada_manha}</td>
-            <td data-tipo="saida_almoco">${ponto.saida_almoco}</td>
-            <td data-tipo="retorno_almoco">${ponto.retorno_almoco}</td>
-            <td data-tipo="saida_tarde">${ponto.saida_tarde}</td>
-          </tr>
-        `;
-      });
+    // 2. Gerar todos os dias do mês selecionado
+    const [ano, mes] = filtroMes.split("-").map(Number);
+    
+    // new Date(ano, mes, 0) pega o último dia do mês ANTERIOR (que é 'mes - 1' no índice JS)
+    // Mas como queremos o último dia do mês 'mes', usamos 'mes' (que vira 'mes - 1' no índice)
+    // e o dia 0 do mês SEGUINTE.
+    const diasNoMes = new Date(ano, mes, 0).getDate();
+
+    // 3. Iterar por TODOS os dias do mês e construir a tabela
+    for (let dia = 1; dia <= diasNoMes; dia++) {
+      
+      // Criamos um objeto Date para saber o dia da semana
+      // new Date() usa mês 0-indexado (0=Jan, 11=Dez), por isso 'mes - 1'
+      const dataAtual = new Date(ano, mes - 1, dia);
+      const diaDaSemana = dataAtual.getDay(); // 0 = Domingo, 1 = Segunda...
+
+      // Formata a data no padrão "YYYY-MM-DD" para buscar no 'pontosPorData'
+      const diaStr = String(dia).padStart(2, "0");
+      const mesStr = String(mes).padStart(2, "0");
+      const dataChave = `${ano}-${mesStr}-${diaStr}`; // ex: "2025-10-05"
+
+      // Pega o ponto se existir, ou cria um objeto vazio
+      const ponto = pontosPorData[dataChave] || {
+        entrada_manha: "-",
+        saida_almoco: "-",
+        retorno_almoco: "-",
+        saida_tarde: "-",
+      };
+
+      // Define a classe CSS se for domingo
+      const classeDomingo = diaDaSemana === 0 ? 'class="domingo"' : '';
+
+      // Adiciona a linha na tabela
+      tabelaCorpo.innerHTML += `
+        <tr ${classeDomingo}>
+          <td>${formatarData(dataChave)}</td>
+          <td data-tipo="entrada_manha">${ponto.entrada_manha}</td>
+          <td data-tipo="saida_almoco">${ponto.saida_almoco}</td>
+          <td data-tipo="retorno_almoco">${ponto.retorno_almoco}</td>
+          <td data-tipo="saida_tarde">${ponto.saida_tarde}</td>
+        </tr>
+      `;
+    }
   } catch (e) {
     console.error("Erro buscando pontos:", e);
   }
@@ -340,6 +376,7 @@ async function carregarPendentes() {
     listaPendentes.innerHTML = "<p>Erro ao carregar dados.</p>";
   }
 }
+
 
 
 
