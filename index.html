@@ -1,94 +1,112 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8" />
-  <title>Painel de Pontos</title>
-  <link rel="stylesheet" href="style.css" />
-  <style>
-    /* --- todo o CSS que você já tem, mantido igual --- */
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Gestão de Ponto</title>
+    <!-- Incluindo Font Awesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Nosso estilo principal -->
+    <link rel="stylesheet" href="style.css" /> 
 </head>
 <body>
-  <div class="container">
-    <h1>Painel Administrativo</h1>
+    <div class="container">
+        <h1>Painel Administrativo</h1>
 
-    <div class="filtros">
-      <div class="autocomplete-container">
-        <input
-          type="text"
-          id="buscaFuncionario"
-          placeholder="Buscar por nome ou CPF"
-          autocomplete="off"
-        />
-        <div id="sugestoes" class="autocomplete-box"></div>
-      </div>
+        <div class="filtros">
+            <div class="autocomplete-container">
+                <input
+                    type="text"
+                    id="buscaFuncionario"
+                    placeholder="Buscar por nome ou CPF"
+                    autocomplete="off"
+                />
+                <div id="sugestoes" class="autocomplete-box"></div>
+            </div>
 
-      <input type="date" id="filtroData" />
-      <input type="month" id="filtroMes" />
-      <button onclick="buscarPontos()">Buscar</button>
-    </div>
-
-    <div class="acoes-barra">
-      <a href="cadastrar.html">Cadastrar Funcionário</a>
-      <a href="editar.html">Editar Funcionário</a>
-      <a href="excluir.html">Excluir Funcionário</a>
-      <a href="editar-ponto.html">Editar Ponto</a>
-      <a href="adicionar-ponto.html">Adicionar Ponto</a>
-      <button onclick="exportarPDF()">Exportar PDF</button>
-    </div>
-
-    <table id="tabelaPontos">
-      <thead>
-        <tr>
-          <th colspan="7" id="nomeFuncionario">Funcionário: -</th>
-        </tr>
-        <tr>
-          <th>Data</th>
-          <th>Entrada (Manhã)</th>
-          <th>Saída (Almoço)</th>
-          <th>Retorno (Almoço)</th>
-          <th>Saída (Tarde)</th>
-          <th>Horas Trabalhadas</th>
-          <th>Horas Extras</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-
-    <!-- Popup -->
-    <div id="popupOverlay" class="popup-overlay">
-      <div class="popup">
-        <h3 id="popupTitulo">Editar Ponto</h3>
-        <input type="time" id="campoValor" step="1">
-        <div class="botoes">
-          <button class="salvar" id="btnSalvar">Salvar</button>
-          <button class="excluir" id="btnExcluir">Excluir</button>
-          <button class="cancelar" id="btnFechar">Cancelar</button>
+            <input type="date" id="filtroData" title="Filtrar por data específica"/>
+            <input type="month" id="filtroMes" title="Filtrar por mês"/>
+            <button onclick="buscarPontos()">Buscar Pontos</button>
         </div>
-      </div>
+
+        <!-- Links para outras páginas -->
+        <div class="acoes-barra">
+            <a href="cadastrar_funcionario.html" class="btn-acao"><i class="fas fa-user-plus"></i> Cadastrar Func.</a>
+            <a href="editar_funcionario.html" class="btn-acao"><i class="fas fa-user-edit"></i> Editar Func.</a>
+            <a href="excluir_funcionario.html" class="btn-acao btn-danger"><i class="fas fa-user-times"></i> Excluir Func.</a>
+            <a href="editar_ponto.html" class="btn-acao"><i class="fas fa-clock"></i> Editar Ponto</a>
+            <a href="adicionar_ponto.html" class="btn-acao"><i class="fas fa-calendar-plus"></i> Add Ponto Manual</a>
+            <button onclick="exportarPDF()" class="btn-acao btn-success"><i class="fas fa-file-pdf"></i> Exportar PDF</button>
+        </div>
+        
+        <!-- Mensagem do sistema (para substituir alerts) -->
+        <div id="systemMsg" class="system-message"></div>
+
+        <table id="tabelaPontos">
+            <thead>
+                <tr>
+                    <th colspan="7" id="nomeFuncionario">Selecione um funcionário para visualizar os pontos.</th>
+                </tr>
+                <tr>
+                    <th>Data</th>
+                    <th>Entrada (Manhã)</th>
+                    <th>Saída (Almoço)</th>
+                    <th>Retorno (Almoço)</th>
+                    <th>Saída (Tarde)</th>
+                    <th class="total-hours">Horas Trab.</th>
+                    <th class="extra-hours">Horas Extras</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="7" style="text-align: center;">Nenhum dado para mostrar.</td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="5" style="text-align: right; font-weight: bold;">TOTAL DO PERÍODO:</td>
+                    <td id="totalTrabalhadas" class="total-hours">00:00</td>
+                    <td id="totalExtras" class="extra-hours">00:00</td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <!-- Popup de Edição -->
+        <div id="popupOverlay" class="popup-overlay">
+            <div class="popup">
+                <h3 id="popupTitulo">Editar Ponto</h3>
+                <input type="time" id="campoValor" step="1" title="Nova hora do ponto">
+                <div class="botoes">
+                    <button class="salvar" id="btnSalvar">Salvar</button>
+                    <button class="excluir" id="btnExcluir">Excluir</button>
+                    <button class="cancelar" id="btnFechar">Cancelar</button>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <!-- jsPDF -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <!-- Painel lateral de pendências -->
+    <div id="painelPendentes" class="painel-pendentes">
+        <div class="painel-header">
+            <h3>Pontos Pendentes de Hoje</h3>
+            <button id="btnFecharPendentes">×</button>
+        </div>
+        <div id="listaPendentes" class="lista-pendentes">
+            <p>Carregando...</p>
+        </div>
+    </div>
 
-  <!-- Nosso script principal -->
-  <script type="module" src="script.js"></script>
+    <button id="btnAbrirPendentes" class="btn-flutuante">⚡ Pendentes</button>
 
-  <!-- Painel lateral de pendências -->
-<div id="painelPendentes" class="painel-pendentes">
-  <div class="painel-header">
-    <h3>Pontos Pendentes de Hoje</h3>
-    <button id="btnFecharPendentes">×</button>
-  </div>
-  <div id="listaPendentes" class="lista-pendentes">
-    <p>Carregando...</p>
-  </div>
-</div>
+    <!-- JS Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
-<button id="btnAbrirPendentes" class="btn-flutuante">⚡ Pendentes</button>
-
+    <!-- Nossos scripts -->
+    <!-- Módulo de configuração do Firebase -->
+    <script type="module" src="firebase-config.js"></script>
+    <!-- Script principal da página -->
+    <script type="module" src="script.js"></script>
 </body>
 </html>
 
