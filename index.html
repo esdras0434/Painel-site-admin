@@ -379,83 +379,89 @@
   <button id="btnAbrirPendentes" class="btn-flutuante">⚡ Pendentes</button>
 
     <script type="module">
-    import {
-      initializeApp,
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getFirestore,
-      collection,
-      getDocs,
-      query,
-      where,
-      addDoc,
-      updateDoc,
-      deleteDoc,
-      doc,
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  initializeApp,
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  query,
+  where,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // ==========================
-    // 🔹 Configuração Firebase
-    // ==========================
-    const firebaseConfig = {
-      apiKey: "AIzaSyCuCbBesvbrOvdzdv1cmCF7M2uaaUfWRU0",
-      authDomain: "meupontoapp-d5d3b.firebaseapp.com",
-      projectId: "meupontoapp-d5d3b",
-      storageBucket: "meupontoapp-d5d3b.appspot.com",
-G     messagingSenderId: "700159340275",
-      appId: "1:700159340275:web:51094e94b4159521cf5186",
-    };
+// ==========================
+// 🔹 Configuração Firebase
+// ==========================
+console.log("🔥 Iniciando conexão com Firebase...");
+const firebaseConfig = {
+  apiKey: "AIzaSyCuCbBesvbrOvdzdv1cmCF7M2uaaUfWRU0",
+  authDomain: "meupontoapp-d5d3b.firebaseapp.com",
+  projectId: "meupontoapp-d5d3b",
+  storageBucket: "meupontoapp-d5d3b.appspot.com",
+  messagingSenderId: "700159340275",
+  appId: "1:700159340275:web:51094e94b4159521cf5186",
+};
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+console.log("✅ Firebase inicializado com sucesso!");
 
-    // ==========================
-    // 🔹 Painel de Pontos Pendentes
-    // ==========================
-    const painelPendentes = document.getElementById("painelPendentes");
-    const listaPendentes = document.getElementById("listaPendentes");
-    const btnAbrirPendentes = document.getElementById("btnAbrirPendentes");
-    const btnFecharPendentes = document.getElementById("btnFecharPendentes");
+// ==========================
+// 🔹 Referências do DOM
+// ==========================
+const inputBusca = document.getElementById("buscaFuncionario");
+const sugestoesBox = document.getElementById("sugestoes");
+const overlay = document.getElementById("popupOverlay");
+const painelPendentes = document.getElementById("painelPendentes");
+const listaPendentes = document.getElementById("listaPendentes");
+const btnAbrirPendentes = document.getElementById("btnAbrirPendentes");
+const btnFecharPendentes = document.getElementById("btnFecharPendentes");
 
-    // ==========================
-    // 🔹 Variáveis globais
-    // ==========================
-    const inputBusca = document.getElementById("buscaFuncionario");
-    const sugestoesBox = document.getElementById("sugestoes");
-    let funcionarios = [];
-    let cpfSelecionado = null;
-    const overlay = document.getElementById("popupOverlay");
+// ==========================
+// 🔹 Variáveis globais
+// ==========================
+let funcionarios = [];
+let cpfSelecionado = null;
 
-    // ==========================
-    // 🔹 Funções auxiliares
-    // ==========================
-    function formatarData(dataStr) {
-      const partes = dataStr.split("-");
-      if (partes.length !== 3) return dataStr;
-      return `${partes[2]}/${partes[1]}/${partes[0]}`;
-    }
+// ==========================
+// 🔹 Função auxiliar
+// ==========================
+function formatarData(dataStr) {
+  const partes = dataStr.split("-");
+  if (partes.length !== 3) return dataStr;
+  return `${partes[2]}/${partes[1]}/${partes[0]}`;
+}
 
-    // ==========================
-    // 🔹 Carregar funcionários
-    // ==========================
-    async function carregarFuncionarios() {
-      try {
-        const colRef = collection(db, "funcionarios");
-        const snapshot = await getDocs(colRef);
+// ==========================
+// 🔹 Carregar funcionários
+// ==========================
+async function carregarFuncionarios() {
+  console.log("📡 Carregando funcionários do Firestore...");
+  try {
+    const colRef = collection(db, "funcionarios");
+    const snapshot = await getDocs(colRef);
 
-        funcionarios = snapshot.docs.map((doc) => doc.data());
-      } catch (e) {
-        console.error("Erro carregando funcionários:", e);
-      }
-    }
-    carregarFuncionarios();
+    funcionarios = snapshot.docs.map((doc) => doc.data());
+    console.log(`✅ Funcionários carregados: ${funcionarios.length}`);
+    console.table(funcionarios);
+  } catch (e) {
+    console.error("❌ Erro carregando funcionários:", e);
+  }
+}
+await carregarFuncionarios();
 
-   // ==========================
-// 🔹 Autocomplete (corrigido)
+// ==========================
+// 🔹 Autocomplete com logs
 // ==========================
 inputBusca.addEventListener("input", () => {
   const termo = inputBusca.value.toLowerCase();
   sugestoesBox.innerHTML = "";
+  console.log("🧠 Digitando:", termo);
 
   if (!termo) {
     sugestoesBox.style.display = "none";
@@ -463,10 +469,9 @@ inputBusca.addEventListener("input", () => {
   }
 
   const encontrados = funcionarios.filter(
-    (f) =>
-      f.nome.toLowerCase().includes(termo) ||
-      f.cpf.includes(termo)
+    (f) => f.nome.toLowerCase().includes(termo) || f.cpf.includes(termo)
   );
+  console.log(`🔍 ${encontrados.length} funcionários encontrados.`);
 
   if (encontrados.length === 0) {
     sugestoesBox.style.display = "none";
@@ -477,6 +482,7 @@ inputBusca.addEventListener("input", () => {
     const div = document.createElement("div");
     div.textContent = `${f.nome} (${f.cpf})`;
     div.onclick = () => {
+      console.log(`👤 Funcionário selecionado: ${f.nome} (${f.cpf})`);
       inputBusca.value = `${f.nome} (${f.cpf})`;
       sugestoesBox.innerHTML = "";
       sugestoesBox.style.display = "none";
@@ -488,270 +494,184 @@ inputBusca.addEventListener("input", () => {
   sugestoesBox.style.display = "block";
 });
 
+// ==========================
+// 🔹 Buscar pontos
+// ==========================
+async function buscarPontos() {
+  console.log("📄 Iniciando busca de pontos...");
+  const cpfTexto = inputBusca.value.match(/\(([^)]+)\)$/);
+  const cpf = cpfTexto ? cpfTexto[1] : inputBusca.value.trim();
+  cpfSelecionado = cpf;
 
-    // ==========================
-    // 🔹 Buscar pontos (VERSÃO ATUALIZADA)
-    // ==========================
-    async function buscarPontos() {
-      const cpfTexto = inputBusca.value.match(/\(([^)]+)\)$/);
-      const cpf = cpfTexto ? cpfTexto[1] : inputBusca.value.trim();
-      cpfSelecionado = cpf;
+  if (!cpf) {
+    alert("Selecione um funcionário válido!");
+    return;
+  }
+  console.log("👤 CPF selecionado:", cpf);
 
-      if (!cpf) {
-        alert("Selecione um funcionário válido!");
-        return;
-      }
+  const filtroMes = document.getElementById("filtroMes").value;
+  if (!filtroMes) {
+    alert("Por favor, selecione um MÊS para gerar o relatório completo.");
+    return;
+  }
+  console.log("🗓️ Mês filtrado:", filtroMes);
 
-      const filtroMes = document.getElementById("filtroMes").value;
-      if (!filtroMes) {
-        alert("Por favor, selecione um MÊS para gerar o relatório completo.");
-        return;
-      }
+  try {
+    const colRef = collection(db, "pontos");
+    const q = query(colRef, where("cpf", "==", cpf));
+    const snapshot = await getDocs(q);
 
-      try {
-        const colRef = collection(db, "pontos");
-        const q = query(colRef, where("cpf", "==", cpf));
-        const snapshot = await getDocs(q);
+    console.log(`📦 Documentos retornados do Firestore: ${snapshot.size}`);
 
-        const pontosPorData = {};
+    const pontosPorData = {};
 
-        snapshot.forEach((doc) => {
-          const d = doc.data();
-          if (!d.data) return;
-          if (filtroMes && !d.data.startsWith(filtroMes)) return;
+    snapshot.forEach((doc) => {
+      const d = doc.data();
+      if (!d.data) return;
+      if (filtroMes && !d.data.startsWith(filtroMes)) return;
 
-          if (!pontosPorData[d.data]) {
-            pontosPorData[d.data] = {
-              entrada_manha: "-",
-              saida_almoco: "-",
-              retorno_almoco: "-",
-              saida_tarde: "-",
-            };
-          }
-          pontosPorData[d.data][d.tipo] = d.hora || "-";
-        });
+      if (!pontosPorData[d.data]) {
+        pontosPorData[d.data] = {
+          entrada_manha: "-",
+          saida_almoco: "-",
+          retorno_almoco: "-",
+          saida_tarde: "-",
+        };
+      }
+      pontosPorData[d.data][d.tipo] = d.hora || "-";
+    });
 
-        const tabelaCorpo = document.querySelector("#tabelaPontos tbody");
-        tabelaCorpo.innerHTML = "";
+    console.log("📅 Pontos agrupados por data:", pontosPorData);
 
-        const nomeFuncionarioEl = document.getElementById("nomeFuncionario");
-        const funcionarioNome =
-          funcionarios.find((f) => f.cpf === cpf)?.nome || "Funcionário";
-        nomeFuncionarioEl.textContent = `Funcionário: ${funcionarioNome}`;
+    const tabelaCorpo = document.querySelector("#tabelaPontos tbody");
+    tabelaCorpo.innerHTML = "";
 
-        const [ano, mes] = filtroMes.split("-").map(Number);
-        const diasNoMes = new Date(ano, mes, 0).getDate();
+    const nomeFuncionarioEl = document.getElementById("nomeFuncionario");
+    const funcionarioNome =
+      funcionarios.find((f) => f.cpf === cpf)?.nome || "Funcionário";
+    nomeFuncionarioEl.textContent = `Funcionário: ${funcionarioNome}`;
 
-        for (let dia = 1; dia <= diasNoMes; dia++) {
-          const dataAtual = new Date(ano, mes - 1, dia);
-          const diaDaSemana = dataAtual.getDay(); // 0 = Domingo
+    const [ano, mes] = filtroMes.split("-").map(Number);
+    const diasNoMes = new Date(ano, mes, 0).getDate();
 
-          const diaStr = String(dia).padStart(2, "0");
-          const mesStr = String(mes).padStart(2, "0");
-          const dataChave = `${ano}-${mesStr}-${diaStr}`;
+    console.log(`📆 Gerando tabela para ${diasNoMes} dias (${mes}/${ano})`);
 
-          const ponto = pontosPorData[dataChave] || {
-            entrada_manha: "-",
-            saida_almoco: "-",
-            retorno_almoco: "-",
-            saida_tarde: "-",
-          };
+    for (let dia = 1; dia <= diasNoMes; dia++) {
+      const dataAtual = new Date(ano, mes - 1, dia);
+      const diaDaSemana = dataAtual.getDay(); // 0 = Domingo
+      const diaStr = String(dia).padStart(2, "0");
+      const mesStr = String(mes).padStart(2, "0");
+      const dataChave = `${ano}-${mesStr}-${diaStr}`;
 
-          const classeDomingo = diaDaSemana === 0 ? 'class="domingo"' : "";
+      const ponto = pontosPorData[dataChave] || {
+        entrada_manha: "-",
+        saida_almoco: "-",
+        retorno_almoco: "-",
+        saida_tarde: "-",
+      };
 
-          tabelaCorpo.innerHTML += `
-            <tr ${classeDomingo}>
-              <td>${formatarData(dataChave)}</td>
-              <td data-tipo="entrada_manha">${ponto.entrada_manha}</td>
-              <td data-tipo="saida_almoco">${ponto.saida_almoco}</td>
-              <td data-tipo="retorno_almoco">${ponto.retorno_almoco}</td>
-              <td data-tipo="saida_tarde">${ponto.saida_tarde}</td>
-                            <td>-</td>
-              <td>-</td>
-            </tr>
-          `;
-        }
-      } catch (e) {
-        console.error("Erro buscando pontos:", e);
-      }
-    }
-    window.buscarPontos = buscarPontos; // Expondo a função para o HTML
+      const classeDomingo = diaDaSemana === 0 ? 'class="domingo"' : "";
 
-    // ==========================
-    // 🔹 Popup de edição
-    // ==========================
-    let celulaSelecionada = null;
-    let dataSelecionada = null;
-    let tipoSelecionado = null;
-    let docIdSelecionado = null;
+      tabelaCorpo.innerHTML += `
+        <tr ${classeDomingo}>
+          <td>${formatarData(dataChave)}</td>
+          <td data-tipo="entrada_manha">${ponto.entrada_manha}</td>
+          <td data-tipo="saida_almoco">${ponto.saida_almoco}</td>
+          <td data-tipo="retorno_almoco">${ponto.retorno_almoco}</td>
+          <td data-tipo="saida_tarde">${ponto.saida_tarde}</td>
+          <td>-</td>
+          <td>-</td>
+        </tr>
+      `;
+    }
 
-    overlay.addEventListener("click", (event) => {
-      if (event.target === overlay) {
-        fecharPopup();
-      }
-    });
+    console.log("✅ Tabela de pontos atualizada com sucesso!");
+  } catch (e) {
+    console.error("❌ Erro buscando pontos:", e);
+  }
+}
+window.buscarPontos = buscarPontos;
 
-    document.addEventListener("click", async (e) => {
-      const td = e.target.closest("td");
-      if (!td || td.closest("thead")) return;
+// ==========================
+// 🔹 Painel Pendentes
+// ==========================
+btnAbrirPendentes.addEventListener("click", carregarPendentes);
+btnFecharPendentes.addEventListener("click", () =>
+  painelPendentes.classList.remove("ativo")
+);
 
-      const tipo = td.dataset.tipo;
-      if (!tipo) return; // Ignora células sem data-tipo (Data, Horas Trab, Horas Extra)
+async function carregarPendentes() {
+  console.log("⚡ Carregando pontos pendentes...");
+  painelPendentes.classList.add("ativo");
+  listaPendentes.innerHTML = "<p>Carregando...</p>";
 
-      celulaSelecionada = td;
-      const tr = td.parentElement;
-      dataSelecionada = tr.children[0].textContent.trim();
-      tipoSelecionado = tipo;
+  const hoje = new Date().toISOString().split("T")[0];
+  const colRef = collection(db, "pontos");
 
-      const valor = td.textContent.trim() !== "-" ? td.textContent.trim() : "";
-      document.getElementById("campoValor").value = valor;
-      document.getElementById("popupTitulo").textContent = valor
-        ? "Editar Ponto"
-        : "Adicionar Ponto";
+  try {
+    const snapshot = await getDocs(colRef);
+    console.log(`📦 Pontos retornados hoje (${hoje}): ${snapshot.size}`);
 
-      const dataFirestore = dataSelecionada.split("/").reverse().join("-");
+    const pontosHoje = {};
+    snapshot.forEach((docSnap) => {
+      const d = docSnap.data();
+      if (d.data === hoje) {
+        if (!pontosHoje[d.cpf]) pontosHoje[d.cpf] = {};
+        pontosHoje[d.cpf][d.tipo] = d.hora;
+      }
+    });
+    console.table(pontosHoje);
 
-      try {
-        const q = query(
-          collection(db, "pontos"),
-          where("cpf", "==", cpfSelecionado),
-          where("data", "==", dataFirestore),
-          where("tipo", "==", tipoSelecionado)
-        );
-        const snap = await getDocs(q);
-        docIdSelecionado = snap.empty ? null : snap.docs[0].id;
-      } catch (err) {
-        console.error("Erro ao buscar documento:", err);
-        docIdSelecionado = null;
-      }
+    const tiposDePonto = [
+      "entrada_manha",
+      "saida_almoco",
+      "retorno_almoco",
+      "saida_tarde",
+    ];
 
-      overlay.style.display = "flex";
-    });
+    const pendentes = funcionarios
+      .map((f) => {
+        const p = pontosHoje[f.cpf] || {};
+        const faltando = tiposDePonto.filter((t) => !p[t]);
+        return { nome: f.nome, cpf: f.cpf, faltando };
+      })
+      .filter((f) => f.faltando.length > 0);
 
-    function fecharPopup() {
-      document.getElementById("popupOverlay").style.display = "none";
-      celulaSelecionada = null;
-    }
+    console.log(`⚠️ ${pendentes.length} funcionários com pontos pendentes.`);
+    console.table(pendentes);
 
-    document.getElementById("btnFechar").addEventListener("click", fecharPopup);
+    if (pendentes.length === 0) {
+      listaPendentes.innerHTML = "<p>Todos os funcionários estão em dia ✅</p>";
+      return;
+    }
 
-    document.getElementById("btnSalvar").addEventListener("click", async () => {
-      if (!celulaSelecionada || !cpfSelecionado) return;
+    listaPendentes.innerHTML = pendentes
+      .map(
+        (p) => `
+        <div>
+          <strong>${p.nome}</strong> (${p.cpf})<br>
+          <small>Faltando: ${p.faltando.join(", ")}</small>
+        </div>
+      `
+      )
+      .join("");
+  } catch (e) {
+    console.error("❌ Erro ao carregar pendentes:", e);
+    listaPendentes.innerHTML = "<p>Erro ao carregar dados.</p>";
+  }
+}
 
-      const novoValor = document.getElementById("campoValor").value.trim();
-      if (!novoValor) return alert("Informe um horário válido!");
+// ==========================
+// 🔹 Exportar PDF
+// ==========================
+function exportarPDF() {
+  console.log("📤 Exportar PDF clicado (função ainda não implementada)");
+  alert("Função Exportar PDF ainda não implementada.");
+}
+window.exportarPDF = exportarPDF;
+</script>
 
-      const dataFirestore = dataSelecionada.split("/").reverse().join("-");
-
-      try {
-        if (docIdSelecionado) {
-          await updateDoc(doc(db, "pontos", docIdSelecionado), { hora: novoValor });
-        } else {
-          const novoDoc = await addDoc(collection(db, "pontos"), {
-            cpf: cpfSelecionado,
-            data: dataFirestore,
-            tipo: tipoSelecionado,
-            hora: novoValor,
-          });
-          docIdSelecionado = novoDoc.id; // Armazena o ID do novo doc
-        }
-
-        celulaSelecionada.textContent = novoValor;
-        alert("Ponto salvo com sucesso!");
-      } catch (err) {
-        console.error("Erro ao salvar:", err);
-        alert("Erro ao salvar no banco de dados!");
-      }
-
-      fecharPopup();
-    });
-
-    document.getElementById("btnExcluir").addEventListener("click", async () => {
-      if (!celulaSelecionada) return;
-
-      try {
-        if (docIdSelecionado) {
-          await deleteDoc(doc(db, "pontos", docIdSelecionado));
-        }
-        celulaSelecionada.textContent = "-";
-        alert("Ponto excluído com sucesso!");
-      } catch (err) {
-        console.error("Erro ao excluir:", err);
-        alert("Erro ao excluir do banco de dados!");
-      }
-
-      fecharPopup();
-    });
-
-    // ==========================
-    // 🔹 Painel Pendentes
-    // ==========================
-    btnAbrirPendentes.addEventListener("click", carregarPendentes);
-    btnFecharPendentes.addEventListener("click", () =>
-      painelPendentes.classList.remove("ativo")
-    );
-
-    async function carregarPendentes() {
-      painelPendentes.classList.add("ativo");
-      listaPendentes.innerHTML = "<p>Carregando...</p>";
-
-      const hoje = new Date().toISOString().split("T")[0]; // formato YYYY-MM-DD
-      const colRef = collection(db, "pontos");
-
-      try {
-        const snapshot = await getDocs(colRef);
-        const pontosHoje = {};
-        snapshot.forEach((docSnap) => {
-          const d = docSnap.data();
-          if (d.data === hoje) {
-            if (!pontosHoje[d.cpf]) pontosHoje[d.cpf] = {};
-            pontosHoje[d.cpf][d.tipo] = d.hora;
-          }
-        });
-
-        const tiposDePonto = [
-          "entrada_manha",
-          "saida_almoco",
-          "retorno_almoco",
-          "saida_tarde",
-        ];
-
-        const pendentes = funcionarios
-          .map((f) => {
-            const p = pontosHoje[f.cpf] || {};
-            const faltando = tiposDePonto.filter((t) => !p[t]);
-            return { nome: f.nome, cpf: f.cpf, faltando };
-          })
-          .filter((f) => f.faltando.length > 0);
-
-        if (pendentes.length === 0) {
-          listaPendentes.innerHTML = "<p>Todos os funcionários estão em dia ✅</p>";
-          return;
-        }
-
-        listaPendentes.innerHTML = pendentes
-          .map(
-            (p) => `
-            <div>
-              <strong>${p.nome}</strong> (${p.cpf})<br>
-              <small>Faltando: ${p.faltando.join(", ")}</small>
-            </div>
-          `
-          )
-          .join("");
-      } catch (e) {
-        console.error("Erro ao carregar pendentes:", e);
-        listaPendentes.innerHTML = "<p>Erro ao carregar dados.</p>";
-      }
-    }
-    
-    // Funções de Exportação (ainda não implementadas)
-    function exportarPDF() {
-      alert("Função Exportar PDF ainda não implementada.");
-    }
-    window.exportarPDF = exportarPDF;
-
-  </script>
 </body>
 </html>
+
 
