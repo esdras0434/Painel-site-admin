@@ -266,6 +266,40 @@
       padding: 10px 18px;
     }
   }
+
+     /* ==========================
+    🔍 AUTOCOMPLETE VISUAL
+========================== */
+.autocomplete-container {
+  position: relative;
+  width: 250px;
+}
+
+.autocomplete-box {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 999;
+  display: none; /* começa oculta */
+}
+
+.autocomplete-box div {
+  padding: 10px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.autocomplete-box div:hover {
+  background-color: #e9f3ff;
+}
+
 </style>
 
 </head>
@@ -416,30 +450,44 @@ G     messagingSenderId: "700159340275",
     }
     carregarFuncionarios();
 
-    // ==========================
-    // 🔹 Autocomplete
-    // ==========================
-    inputBusca.addEventListener("input", () => {
-      const termo = inputBusca.value.toLowerCase();
-      sugestoesBox.innerHTML = "";
+   // ==========================
+// 🔹 Autocomplete (corrigido)
+// ==========================
+inputBusca.addEventListener("input", () => {
+  const termo = inputBusca.value.toLowerCase();
+  sugestoesBox.innerHTML = "";
 
-      if (!termo) return;
+  if (!termo) {
+    sugestoesBox.style.display = "none";
+    return;
+  }
 
-      const encontrados = funcionarios.filter(
-        (f) => f.nome.toLowerCase().includes(termo) || f.cpf.includes(termo)
-      );
+  const encontrados = funcionarios.filter(
+    (f) =>
+      f.nome.toLowerCase().includes(termo) ||
+      f.cpf.includes(termo)
+  );
 
-      encontrados.slice(0, 5).forEach((f) => {
-        const div = document.createElement("div");
-        div.textContent = `${f.nome} (${f.cpf})`;
-        div.onclick = () => {
-          inputBusca.value = `${f.nome} (${f.cpf})`;
-          sugestoesBox.innerHTML = "";
-          cpfSelecionado = f.cpf;
-        };
-        sugestoesBox.appendChild(div);
-      });
-    });
+  if (encontrados.length === 0) {
+    sugestoesBox.style.display = "none";
+    return;
+  }
+
+  encontrados.slice(0, 5).forEach((f) => {
+    const div = document.createElement("div");
+    div.textContent = `${f.nome} (${f.cpf})`;
+    div.onclick = () => {
+      inputBusca.value = `${f.nome} (${f.cpf})`;
+      sugestoesBox.innerHTML = "";
+      sugestoesBox.style.display = "none";
+      cpfSelecionado = f.cpf;
+    };
+    sugestoesBox.appendChild(div);
+  });
+
+  sugestoesBox.style.display = "block";
+});
+
 
     // ==========================
     // 🔹 Buscar pontos (VERSÃO ATUALIZADA)
@@ -706,3 +754,4 @@ G     messagingSenderId: "700159340275",
   </script>
 </body>
 </html>
+
