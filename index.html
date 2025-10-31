@@ -4,434 +4,270 @@
   <meta charset="UTF-8" />
   <title>Painel de Pontos</title>
  
-    <style>
-    /* ==========================
-        🎨 AJUSTES GLOBAIS
-     ========================== */
-    * {
-      box-sizing: border-box;
-    }
+   <style>
+  /* ==========================
+      ⚙️ RESET E BASE GLOBAL
+  ========================== */
+  * {
+    box-sizing: border-box;
+  }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-        Helvetica, Arial, sans-serif;
-      background-color: #f8f9fa; /* Fundo mais neutro */
-      margin: 0;
-      padding: 0;
-      color: #333;
-    }
+  body {
+    font-family: "Inter", "Segoe UI", Roboto, Arial, sans-serif;
+    background: linear-gradient(135deg, #e3f2fd, #ffffff);
+    margin: 0;
+    padding: 0;
+    color: #333;
+    min-height: 100vh;
+  }
 
-    .container {
-      max-width: 1100px; /* Um pouco mais largo */
-      margin: 30px auto;
-      background: white;
-      padding: 30px;
-      border-radius: 12px;
-      /* Sombra mais suave e moderna */
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07);
-    }
+  /* ==========================
+      🧭 CABEÇALHO FIXO
+  ========================== */
+  header {
+    background: linear-gradient(135deg, #007bff, #00a8ff);
+    color: white;
+    padding: 18px 30px;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    letter-spacing: 0.5px;
+  }
 
-    h1 {
-      text-align: center;
-      color: #2c3e50; /* Cor mais profissional */
-      margin-top: 0;
-      margin-bottom: 25px;
-    }
+  header h1 {
+    margin: 0;
+    font-size: 1.7em;
+  }
 
-    /* ==========================
-        🛠️ FILTROS E AÇÕES
-     ========================== */
-    .filtros {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      align-items: center;
-      margin-bottom: 20px;
-      position: relative;
-    }
+  /* ==========================
+      🧊 CONTAINER PRINCIPAL
+  ========================== */
+  .container {
+    max-width: 1100px;
+    margin: 40px auto;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 35px;
+    border-radius: 16px;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  }
 
-    .filtros input {
-      padding: 10px 12px;
-      font-size: 15px;
-      border: 1px solid #ced4da;
-      border-radius: 6px;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
+  /* ==========================
+      🔍 FILTROS E BUSCA
+  ========================== */
+  .filtros {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 25px;
+  }
 
-    .filtros input:focus {
-      border-color: #007bff;
-      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
-      outline: none;
-    }
+  .filtros input,
+  .filtros button {
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid #ced4da;
+    font-size: 15px;
+    transition: all 0.25s ease;
+  }
 
-    .filtros button {
-      background-color: #007bff;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      padding: 10px 16px;
-      font-size: 15px;
-      font-weight: 500;
-      transition: background-color 0.2s;
-    }
+  .filtros input:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.15);
+    outline: none;
+  }
 
-    .filtros button:hover {
-      background-color: #0056b3;
-    }
+  .filtros button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+  }
 
-    .autocomplete-container {
-      position: relative;
-      flex-grow: 1; /* Faz a busca ocupar mais espaço */
-      min-width: 250px;
-    }
+  .filtros button:hover {
+    background-color: #0056b3;
+    transform: translateY(-1px);
+  }
 
-    #buscaFuncionario {
-      width: 100%; /* Ocupa todo o container */
-    }
+  /* ==========================
+      🧭 AÇÕES / MENU
+  ========================== */
+  .acoes-barra {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 25px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e0e0e0;
+  }
 
-    .autocomplete-box {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      background: white;
-      border: 1px solid #ddd;
-      border-top: none;
-      max-height: 200px;
-      overflow-y: auto;
-      z-index: 9999;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-      border-radius: 0 0 6px 6px;
-    }
+  .acoes-barra a,
+  .acoes-barra button {
+    text-decoration: none;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    border: 1px solid #ced4da;
+    background-color: #f8f9fa;
+    color: #495057;
+    transition: all 0.25s ease;
+  }
 
-    .autocomplete-box div {
-      padding: 10px;
-      cursor: pointer;
-    }
+  .acoes-barra a:hover,
+  .acoes-barra button:hover {
+    background-color: #e9ecef;
+    color: #000;
+    transform: translateY(-2px);
+  }
 
-    .autocomplete-box div:hover {
-      background-color: #f0f0f0;
-    }
+  .acoes-barra button[onclick="exportarPDF()"] {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    margin-left: auto;
+  }
 
-    /* --- ✨ NOVO ESTILO PARA BARRA DE AÇÕES ✨ --- */
-    .acoes-barra {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 25px;
-      padding-bottom: 15px;
-      border-bottom: 1px solid #e9ecef;
-    }
+  .acoes-barra button[onclick="exportarPDF()"]:hover {
+    background-color: #1e7e34;
+  }
 
-    .acoes-barra a,
-    .acoes-barra button {
-      text-decoration: none;
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background-color 0.2s, color 0.2s;
-      border: 1px solid #ced4da;
-      background-color: #f8f9fa;
-      color: #495057;
-    }
+  /* ==========================
+      📊 TABELA DE PONTOS
+  ========================== */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 10px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  }
 
-    .acoes-barra a:hover,
-    .acoes-barra button:hover {
-      background-color: #e9ecef;
-      color: #000;
-      border-color: #adb5bd;
-    }
+  th {
+    background: #007bff;
+    color: white;
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 0.6px;
+    padding: 12px;
+  }
 
-    /* Botão de exportar com destaque */
-    .acoes-barra button[onclick="exportarPDF()"] {
-      background-color: #28a745;
-      color: white;
-      border-color: #28a745;
-      margin-left: auto; /* Joga para a direita */
-    }
+  th[colspan="7"] {
+    background: #004b9a;
+    font-size: 1.1em;
+    text-align: left;
+    padding-left: 20px;
+  }
 
-    .acoes-barra button[onclick="exportarPDF()"]:hover {
-      background-color: #218838;
-      border-color: #1e7e34;
-    }
+  td {
+    padding: 10px 14px;
+    text-align: center;
+    border-bottom: 1px solid #eee;
+    color: #555;
+    transition: background-color 0.25s ease;
+  }
 
-    /* ==========================
-        📊 TABELA DE PONTOS
-     ========================== */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background-color: white;
-      overflow-x: auto;
-      display: block;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-      border: 1px solid #dee2e6;
-    }
+  tbody tr:nth-child(even) {
+    background-color: #f9fbff;
+  }
 
-    /* --- ✨ CABEÇALHO DA TABELA ✨ --- */
-    th {
-      background-color: #f1f3f5; /* Cinza claro uniforme */
-      color: #495057;
-      font-weight: 600;
-      padding: 12px 15px;
-      text-align: center;
-      /* Novo: visual mais "pro" */
-      text-transform: uppercase;
-      font-size: 12px;
-      letter-spacing: 0.5px;
-      border-bottom: 2px solid #dee2e6;
-      border-right: 1px solid #dee2e6;
-    }
+  tbody tr:hover td[data-tipo] {
+    background-color: #e1f0ff;
+    cursor: pointer;
+  }
 
-    th:last-child {
-      border-right: none;
-    }
+  .domingo {
+    background-color: #fff7d6;
+    color: #856404;
+    font-weight: 500;
+  }
 
-    /* Cabeçalho do Nome do Funcionário */
-    th[colspan="7"] {
-      background-color: #343a40; /* Fundo escuro */
-      color: white;
-      font-size: 1.1em;
-      text-align: left;
-      padding-left: 15px;
-      /* Reseta o estilo "pro" */
-      text-transform: none;
-      letter-spacing: 0;
-      border-bottom: 1px solid #495057;
-    }
+  /* ==========================
+      🪟 POPUP
+  ========================== */
+  .popup-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.4);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+  }
 
-    /* --- ✨ CORPO DA TABELA ✨ --- */
-    td {
-      border: none; /* Remove bordas laterais */
-      border-bottom: 1px solid #e9ecef; /* Apenas borda inferior */
-      padding: 10px 15px;
-      text-align: center;
-      transition: background 0.2s;
-      color: #555;
-      font-size: 14px;
-      /* Coloca borda na direita para separar colunas */
-      border-right: 1px solid #e9ecef; 
-    }
-    
-    td:last-child {
-      border-right: none;
-    }
+  .popup {
+    background: #fff;
+    padding: 25px 30px;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    max-width: 350px;
+    text-align: center;
+    animation: zoomIn 0.25s ease;
+  }
 
-    /* --- ❌ REMOVIDO o fundo colorido por coluna ❌ --- */
+  .popup h3 {
+    margin-bottom: 15px;
+  }
 
-    /* --- ✨ ADICIONADO "Zebra Striping" ✨ --- */
-    tbody tr:nth-child(even) {
-      background-color: #fcfcfc; /* Cor sutil para linhas pares */
-    }
+  @keyframes zoomIn {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
 
-    /* --- ✨ HOVER NA LINHA INTEIRA ✨ --- */
-    tbody tr:not(.domingo):hover {
-      background-color: #e6f7ff; /* Destaque azul claro */
-      cursor: pointer;
-    }
+  /* ==========================
+      ⚡ BOTÃO FLUTUANTE
+  ========================== */
+  .btn-flutuante {
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    background: linear-gradient(135deg, #007bff, #00a8ff);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: 12px 22px;
+    font-size: 15px;
+    cursor: pointer;
+    box-shadow: 0 6px 15px rgba(0,123,255,0.3);
+    transition: all 0.25s ease;
+    font-weight: 500;
+  }
 
-    /* Células de ponto clicáveis (data-tipo) */
-    td[data-tipo]:hover {
-      background-color: #d1f0ff;
-      font-weight: 500;
-    }
+  .btn-flutuante:hover {
+    transform: scale(1.05);
+    background: linear-gradient(135deg, #0062cc, #0080ff);
+  }
 
-    /* Estilo de Domingo (mantido) */
-    #tabelaPontos tbody tr.domingo {
-      background-color: #fffbe6;
-      color: #72620a;
-      font-weight: 500;
-    }
+  /* ==========================
+      📱 RESPONSIVIDADE
+  ========================== */
+  @media (max-width: 768px) {
+    .container {
+      padding: 20px;
+    }
 
-    #tabelaPontos tbody tr.domingo td {
-      color: #8a760e;
-    }
+    table, th, td {
+      font-size: 13px;
+    }
 
-    #tabelaPontos tbody tr.domingo:hover {
-      background-color: #f7f2d2;
-    }
+    .acoes-barra, .filtros {
+      flex-direction: column;
+    }
 
-    /* ==========================
-        팝 POPUP E PAINEL LATERAL
-     ========================== */
+    .btn-flutuante {
+      right: 15px;
+      bottom: 15px;
+      padding: 10px 18px;
+    }
+  }
+</style>
 
-    /* === POPUP (modal flutuante) === */
-    .popup-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-    }
-
-    .popup {
-      background: #fff;
-      padding: 25px 30px;
-      border-radius: 10px;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-      max-width: 350px;
-      width: 90%;
-      text-align: center;
-      animation: popupFadeIn 0.2s ease-in-out;
-    }
-
-    .popup h3 {
-      margin-top: 0;
-      margin-bottom: 20px;
-      font-size: 1.3em;
-      color: #333;
-    }
-
-    .popup input[type="time"] {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 20px;
-      font-size: 1.1em;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-    }
-
-    .popup .botoes {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-    }
-
-    .popup button {
-      flex: 1;
-      padding: 10px 14px;
-      font-size: 1em;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
-      font-weight: 500;
-    }
-
-    .popup button.salvar {
-      background-color: #4caf50;
-      color: white;
-    }
-
-    .popup button.excluir {
-      background-color: #f44336;
-      color: white;
-    }
-
-    .popup button.cancelar {
-      background-color: #9e9e9e;
-      color: white;
-    }
-
-    .popup button:hover {
-      opacity: 0.85;
-    }
-
-    /* ===== Painel lateral ===== */
-    .painel-pendentes {
-      position: fixed;
-      top: 0;
-      right: -400px;
-      width: 350px;
-      height: 100%;
-      background: #fff;
-      box-shadow: -3px 0 10px rgba(0, 0, 0, 0.2);
-      transition: right 0.3s ease;
-      z-index: 2000;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .painel-pendentes.ativo {
-      right: 0;
-    }
-
-    .painel-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #007bff;
-      color: white;
-      padding: 12px 15px;
-    }
-
-    .painel-header h3 {
-      margin: 0;
-      font-size: 1.1em;
-    }
-
-    #btnFecharPendentes {
-      background: none;
-      border: none;
-      color: white;
-      font-size: 22px;
-      cursor: pointer;
-      padding: 0 5px;
-    }
-
-    .lista-pendentes {
-      flex: 1;
-      overflow-y: auto;
-      padding: 10px;
-    }
-
-    .lista-pendentes div {
-      background: #f5f5f5;
-      padding: 10px 12px;
-      border-radius: 6px;
-      margin-bottom: 8px;
-      font-size: 14px;
-      border-left: 4px solid #ff9800;
-    }
-    .lista-pendentes p {
-      padding: 10px;
-      text-align: center;
-      color: #777;
-    }
-
-    .btn-flutuante {
-      position: fixed;
-      bottom: 25px;
-      right: 25px;
-      background: #007bff;
-      color: white;
-      border: none;
-      border-radius: 50px;
-      padding: 12px 22px;
-      font-size: 15px;
-      cursor: pointer;
-      box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3);
-      transition: background 0.2s, transform 0.2s;
-      z-index: 1500;
-      font-weight: 500;
-    }
-
-    .btn-flutuante:hover {
-      background: #0056b3;
-      transform: translateY(-2px);
-    }
-
-    @keyframes popupFadeIn {
-      from {
-        opacity: 0;
-        transform: scale(0.9);
-      }
-      to {
-        opacity: 1;
-        transform: scale(1);
-      }
-    }
-  </style>
 </head>
 <body>
   <div class="container">
@@ -870,4 +706,3 @@ G     messagingSenderId: "700159340275",
   </script>
 </body>
 </html>
-
