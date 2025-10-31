@@ -1,93 +1,768 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8" />
-  <title>Painel de Pontos</title>
-  <link rel="stylesheet" href="style.css" />
-  <style>
-    /* --- todo o CSS que você já tem, mantido igual --- */
-  </style>
+  <meta charset="UTF-8" />
+  <title>Painel de Pontos</title>
+ 
+    <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #e3f2fd;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px #ccc;
+    }
+
+    h1 {
+      text-align: center;
+      color: #1976d2;
+    }
+
+    .filtros {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .filtros input,
+    .filtros button {
+      padding: 10px;
+      font-size: 16px;
+    }
+
+    .filtros input {
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    .filtros button {
+      background-color: #1976d2;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .filtros button:hover {
+      background-color: #1565c0;
+    }
+
+    /* ====== TABELA DE PONTOS ====== */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: white;
+      overflow-x: auto;
+      display: block;
+      border-radius: 8px;
+    }
+
+    th,
+    td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: center;
+      transition: background 0.2s;
+    }
+
+    th {
+      background-color: #bbdefb;
+      color: #0d47a1;
+      font-weight: bold;
+    }
+
+    /* ====== SEPARAÇÕES POR GRUPO DE HORÁRIOS ====== */
+
+    /* Entrada (Manhã) */
+    th:nth-child(2),
+    td:nth-child(2) {
+      background-color: #e3f2fd;
+    }
+
+    /* Saída (Almoço) */
+    th:nth-child(3),
+    td:nth-child(3) {
+      background-color: #f1f8e9;
+    }
+
+    /* Retorno (Almoço) */
+    th:nth-child(4),
+    td:nth-child(4) {
+      background-color: #fff8e1;
+    }
+
+    /* Saída (Tarde) */
+    th:nth-child(5),
+    td:nth-child(5) {
+      background-color: #fbe9e7;
+    }
+
+    /* Horas Trabalhadas */
+    th:nth-child(6),
+    td:nth-child(6) {
+      background-color: #f3e5f5;
+    }
+
+    /* Horas Extras */
+    th:nth-child(7),
+    td:nth-child(7) {
+      background-color: #ede7f6;
+    }
+
+    /* ====== Interações ====== */
+    td:hover {
+      background-color: #e0f7fa;
+    }
+
+    th[colspan="7"] {
+      background-color: #1976d2;
+      color: white;
+      font-size: 1.1em;
+      text-align: left;
+      padding-left: 10px;
+    }
+
+    .autocomplete-container {
+      position: relative;
+      width: 300px;
+    }
+
+    .autocomplete-box {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #ccc;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 9999;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .autocomplete-box div {
+      padding: 8px;
+      cursor: pointer;
+    }
+
+    .autocomplete-box div:hover {
+      background-color: #f0f0f0;
+    }
+
+    /* === POPUP (modal flutuante) === */
+    .popup-overlay {
+      display: none; /* inicial escondido */
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex; /* flex para centralizar */
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+
+    .popup {
+      background: #fff;
+      padding: 20px 25px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      max-width: 350px;
+      width: 90%;
+      text-align: center;
+      animation: popupFadeIn 0.2s ease-in-out;
+    }
+
+    .popup h3 {
+      margin-bottom: 15px;
+      font-size: 1.2em;
+      color: #333;
+    }
+
+    .popup input[type="time"] {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 15px;
+      font-size: 1em;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    .popup .botoes {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .popup button {
+      flex: 1;
+      padding: 8px 12px;
+      font-size: 1em;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .popup button.salvar {
+      background-color: #4caf50;
+      color: white;
+    }
+
+    .popup button.excluir {
+      background-color: #f44336;
+      color: white;
+    }
+
+    .popup button.cancelar {
+      background-color: #999;
+      color: white;
+    }
+
+    .popup button:hover {
+      opacity: 0.9;
+    }
+
+    /* ===== Painel lateral ===== */
+    .painel-pendentes {
+      position: fixed;
+      top: 0;
+      right: -400px;
+      width: 350px;
+      height: 100%;
+      background: #fff;
+      box-shadow: -3px 0 10px rgba(0, 0, 0, 0.2);
+      transition: right 0.3s ease;
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .painel-pendentes.ativo {
+      right: 0;
+    }
+
+    .painel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #007bff;
+      color: white;
+      padding: 10px 15px;
+    }
+
+    #btnFecharPendentes {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .lista-pendentes {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+    }
+
+    .lista-pendentes div {
+      background: #f5f5f5;
+      padding: 8px 10px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      font-size: 14px;
+      border-left: 4px solid #ff9800;
+    }
+
+    .btn-flutuante {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 50px;
+      padding: 10px 20px;
+      font-size: 15px;
+      cursor: pointer;
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+      transition: background 0.2s;
+      z-index: 1500;
+    }
+
+    .btn-flutuante:hover {
+      background: #0056b3;
+  }
+
+    #tabelaPontos tbody tr.domingo {
+      background-color: #fffbe6;
+      color: #72620a;
+      font-weight: 500;
+    }
+
+    #tabelaPontos tbody tr.domingo:hover {
+      background-color: #f7f2d2;
+    }
+
+    @keyframes popupFadeIn {
+      from {
+        opacity: 0;
+        transform: scale(0.9);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+  D }
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Painel Administrativo</h1>
+  <div class="container">
+    <h1>Painel Administrativo</h1>
 
-    <div class="filtros">
-      <div class="autocomplete-container">
-        <input
-          type="text"
-          id="buscaFuncionario"
-          placeholder="Buscar por nome ou CPF"
-          autocomplete="off"
-        />
-        <div id="sugestoes" class="autocomplete-box"></div>
-      </div>
+    <div class="filtros">
+      <div class="autocomplete-container">
+        <input
+          type="text"
+          id="buscaFuncionario"
+          placeholder="Buscar por nome ou CPF"
+          autocomplete="off"
+        />
+        <div id="sugestoes" class="autocomplete-box"></div>
+      </div>
 
-      <input type="date" id="filtroData" />
-      <input type="month" id="filtroMes" />
-      <button onclick="buscarPontos()">Buscar</button>
-    </div>
+      <input type="date" id="filtroData" />
+      <input type="month" id="filtroMes" />
+      <button onclick="buscarPontos()">Buscar</button>
+    </div>
 
-    <div class="acoes-barra">
-      <a href="cadastrar.html">Cadastrar Funcionário</a>
-      <a href="editar.html">Editar Funcionário</a>
-      <a href="excluir.html">Excluir Funcionário</a>
-      <a href="editar-ponto.html">Editar Ponto</a>
-      <a href="adicionar-ponto.html">Adicionar Ponto</a>
-      <button onclick="exportarPDF()">Exportar PDF</button>
-    </div>
+    <div class="acoes-barra">
+      <a href="cadastrar.html">Cadastrar Funcionário</a>
+      <a href="editar.html">Editar Funcionário</a>
+      <a href="excluir.html">Excluir Funcionário</a>
+      <a href="editar-ponto.html">Editar Ponto</a>
+      <a href="adicionar-ponto.html">Adicionar Ponto</a>
+      <button onclick="exportarPDF()">Exportar PDF</button>
+    </div>
 
-    <table id="tabelaPontos">
-      <thead>
-        <tr>
-          <th colspan="7" id="nomeFuncionario">Funcionário: -</th>
-        </tr>
-        <tr>
-          <th>Data</th>
-          <th>Entrada (Manhã)</th>
-          <th>Saída (Almoço)</th>
-          <th>Retorno (Almoço)</th>
-          <th>Saída (Tarde)</th>
-          <th>Horas Trabalhadas</th>
-          <th>Horas Extras</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+    <table id="tabelaPontos">
+      <thead>
+        <tr>
+          <th colspan="7" id="nomeFuncionario">Funcionário: -</th>
+        </tr>
+        <tr>
+          <th>Data</th>
+          <th>Entrada (Manhã)</th>
+          <th>Saída (Almoço)</th>
+          <th>Retorno (Almoço)</th>
+          <th>Saída (Tarde)</th>
+          <th>Horas Trabalhadas</th>
+          <th>Horas Extras</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
 
-    <!-- Popup -->
-    <div id="popupOverlay" class="popup-overlay">
-      <div class="popup">
-        <h3 id="popupTitulo">Editar Ponto</h3>
-        <input type="time" id="campoValor" step="1">
-        <div class="botoes">
-          <button class="salvar" id="btnSalvar">Salvar</button>
-          <button class="excluir" id="btnExcluir">Excluir</button>
-          <button class="cancelar" id="btnFechar">Cancelar</button>
-        </div>
-      </div>
-    </div>
-  </div>
+        <div id="popupOverlay" class="popup-overlay">
+      <div class="popup">
+        <h3 id="popupTitulo">Editar Ponto</h3>
+        <input type="time" id="campoValor" step="1" />
+        <div class="botoes">
+          <button class="salvar" id="btnSalvar">Salvar</button>
+          <button class="excluir" id="btnExcluir">Excluir</button>
+          <button class="cancelar" id="btnFechar">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  <!-- jsPDF -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
-  <!-- Nosso script principal -->
-  <script type="module" src="script.js"></script>
+    <div id="painelPendentes" class="painel-pendentes">
+    <div class="painel-header">
+      <h3>Pontos Pendentes de Hoje</h3>
+      <button id="btnFecharPendentes">×</button>
+    </div>
+    <div id="listaPendentes" class="lista-pendentes">
+      <p>Carregando...</p>
+    </div>
+  </div>
 
-  <!-- Painel lateral de pendências -->
-<div id="painelPendentes" class="painel-pendentes">
-  <div class="painel-header">
-    <h3>Pontos Pendentes de Hoje</h3>
-    <button id="btnFecharPendentes">×</button>
-  </div>
-  <div id="listaPendentes" class="lista-pendentes">
-    <p>Carregando...</p>
-  </div>
-</div>
+  <button id="btnAbrirPendentes" class="btn-flutuante">⚡ Pendentes</button>
 
-<button id="btnAbrirPendentes" class="btn-flutuante">⚡ Pendentes</button>
+    <script type="module">
+    import {
+      initializeApp,
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      getDocs,
+      query,
+      where,
+      addDoc,
+      updateDoc,
+      deleteDoc,
+      doc,
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+    // ==========================
+    // 🔹 Configuração Firebase
+    // ==========================
+    const firebaseConfig = {
+      apiKey: "AIzaSyCuCbBesvbrOvdzdv1cmCF7M2uaaUfWRU0",
+      authDomain: "meupontoapp-d5d3b.firebaseapp.com",
+      projectId: "meupontoapp-d5d3b",
+      storageBucket: "meupontoapp-d5d3b.appspot.com",
+G     messagingSenderId: "700159340275",
+      appId: "1:700159340275:web:51094e94b4159521cf5186",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // ==========================
+    // 🔹 Painel de Pontos Pendentes
+    // ==========================
+    const painelPendentes = document.getElementById("painelPendentes");
+    const listaPendentes = document.getElementById("listaPendentes");
+    const btnAbrirPendentes = document.getElementById("btnAbrirPendentes");
+    const btnFecharPendentes = document.getElementById("btnFecharPendentes");
+
+    // ==========================
+    // 🔹 Variáveis globais
+    // ==========================
+    const inputBusca = document.getElementById("buscaFuncionario");
+    const sugestoesBox = document.getElementById("sugestoes");
+    let funcionarios = [];
+    let cpfSelecionado = null;
+    const overlay = document.getElementById("popupOverlay");
+
+    // ==========================
+    // 🔹 Funções auxiliares
+    // ==========================
+    function formatarData(dataStr) {
+      const partes = dataStr.split("-");
+      if (partes.length !== 3) return dataStr;
+      return `${partes[2]}/${partes[1]}/${partes[0]}`;
+    }
+
+    // ==========================
+    // 🔹 Carregar funcionários
+    // ==========================
+    async function carregarFuncionarios() {
+      try {
+        const colRef = collection(db, "funcionarios");
+        const snapshot = await getDocs(colRef);
+
+        funcionarios = snapshot.docs.map((doc) => doc.data());
+      } catch (e) {
+        console.error("Erro carregando funcionários:", e);
+      }
+    }
+    carregarFuncionarios();
+
+    // ==========================
+    // 🔹 Autocomplete
+    // ==========================
+    inputBusca.addEventListener("input", () => {
+      const termo = inputBusca.value.toLowerCase();
+      sugestoesBox.innerHTML = "";
+
+      if (!termo) return;
+
+      const encontrados = funcionarios.filter(
+        (f) => f.nome.toLowerCase().includes(termo) || f.cpf.includes(termo)
+      );
+
+      encontrados.slice(0, 5).forEach((f) => {
+        const div = document.createElement("div");
+        div.textContent = `${f.nome} (${f.cpf})`;
+        div.onclick = () => {
+          inputBusca.value = `${f.nome} (${f.cpf})`;
+          sugestoesBox.innerHTML = "";
+          cpfSelecionado = f.cpf;
+        };
+        sugestoesBox.appendChild(div);
+      });
+    });
+
+    // ==========================
+    // 🔹 Buscar pontos (VERSÃO ATUALIZADA)
+    // ==========================
+    async function buscarPontos() {
+      const cpfTexto = inputBusca.value.match(/\(([^)]+)\)$/);
+      const cpf = cpfTexto ? cpfTexto[1] : inputBusca.value.trim();
+      cpfSelecionado = cpf;
+
+      if (!cpf) {
+        alert("Selecione um funcionário válido!");
+        return;
+      }
+
+      const filtroMes = document.getElementById("filtroMes").value;
+      if (!filtroMes) {
+        alert("Por favor, selecione um MÊS para gerar o relatório completo.");
+        return;
+      }
+
+      try {
+        const colRef = collection(db, "pontos");
+        const q = query(colRef, where("cpf", "==", cpf));
+        const snapshot = await getDocs(q);
+
+        const pontosPorData = {};
+
+        snapshot.forEach((doc) => {
+          const d = doc.data();
+          if (!d.data) return;
+          if (filtroMes && !d.data.startsWith(filtroMes)) return;
+
+          if (!pontosPorData[d.data]) {
+            pontosPorData[d.data] = {
+              entrada_manha: "-",
+              saida_almoco: "-",
+              retorno_almoco: "-",
+              saida_tarde: "-",
+            };
+          }
+          pontosPorData[d.data][d.tipo] = d.hora || "-";
+        });
+
+        const tabelaCorpo = document.querySelector("#tabelaPontos tbody");
+        tabelaCorpo.innerHTML = "";
+
+        const nomeFuncionarioEl = document.getElementById("nomeFuncionario");
+        const funcionarioNome =
+          funcionarios.find((f) => f.cpf === cpf)?.nome || "Funcionário";
+        nomeFuncionarioEl.textContent = `Funcionário: ${funcionarioNome}`;
+
+        const [ano, mes] = filtroMes.split("-").map(Number);
+        const diasNoMes = new Date(ano, mes, 0).getDate();
+
+        for (let dia = 1; dia <= diasNoMes; dia++) {
+          const dataAtual = new Date(ano, mes - 1, dia);
+          const diaDaSemana = dataAtual.getDay(); // 0 = Domingo
+
+          const diaStr = String(dia).padStart(2, "0");
+          const mesStr = String(mes).padStart(2, "0");
+          const dataChave = `${ano}-${mesStr}-${diaStr}`;
+
+          const ponto = pontosPorData[dataChave] || {
+            entrada_manha: "-",
+            saida_almoco: "-",
+            retorno_almoco: "-",
+            saida_tarde: "-",
+          };
+
+          const classeDomingo = diaDaSemana === 0 ? 'class="domingo"' : "";
+
+          tabelaCorpo.innerHTML += `
+            <tr ${classeDomingo}>
+              <td>${formatarData(dataChave)}</td>
+              <td data-tipo="entrada_manha">${ponto.entrada_manha}</td>
+              <td data-tipo="saida_almoco">${ponto.saida_almoco}</td>
+              <td data-tipo="retorno_almoco">${ponto.retorno_almoco}</td>
+              <td data-tipo="saida_tarde">${ponto.saida_tarde}</td>
+                            <td>-</td>
+              <td>-</td>
+            </tr>
+          `;
+        }
+      } catch (e) {
+        console.error("Erro buscando pontos:", e);
+      }
+    }
+    window.buscarPontos = buscarPontos; // Expondo a função para o HTML
+
+    // ==========================
+    // 🔹 Popup de edição
+    // ==========================
+    let celulaSelecionada = null;
+    let dataSelecionada = null;
+    let tipoSelecionado = null;
+    let docIdSelecionado = null;
+
+    overlay.addEventListener("click", (event) => {
+      if (event.target === overlay) {
+        fecharPopup();
+      }
+    });
+
+    document.addEventListener("click", async (e) => {
+      const td = e.target.closest("td");
+      if (!td || td.closest("thead")) return;
+
+      const tipo = td.dataset.tipo;
+      if (!tipo) return; // Ignora células sem data-tipo (Data, Horas Trab, Horas Extra)
+
+      celulaSelecionada = td;
+      const tr = td.parentElement;
+      dataSelecionada = tr.children[0].textContent.trim();
+      tipoSelecionado = tipo;
+
+      const valor = td.textContent.trim() !== "-" ? td.textContent.trim() : "";
+      document.getElementById("campoValor").value = valor;
+      document.getElementById("popupTitulo").textContent = valor
+        ? "Editar Ponto"
+        : "Adicionar Ponto";
+
+      const dataFirestore = dataSelecionada.split("/").reverse().join("-");
+
+      try {
+        const q = query(
+          collection(db, "pontos"),
+          where("cpf", "==", cpfSelecionado),
+          where("data", "==", dataFirestore),
+          where("tipo", "==", tipoSelecionado)
+        );
+        const snap = await getDocs(q);
+        docIdSelecionado = snap.empty ? null : snap.docs[0].id;
+      } catch (err) {
+        console.error("Erro ao buscar documento:", err);
+        docIdSelecionado = null;
+      }
+
+      overlay.style.display = "flex";
+    });
+
+    function fecharPopup() {
+      document.getElementById("popupOverlay").style.display = "none";
+      celulaSelecionada = null;
+    }
+
+    document.getElementById("btnFechar").addEventListener("click", fecharPopup);
+
+    document.getElementById("btnSalvar").addEventListener("click", async () => {
+      if (!celulaSelecionada || !cpfSelecionado) return;
+
+      const novoValor = document.getElementById("campoValor").value.trim();
+      if (!novoValor) return alert("Informe um horário válido!");
+
+      const dataFirestore = dataSelecionada.split("/").reverse().join("-");
+
+      try {
+        if (docIdSelecionado) {
+          await updateDoc(doc(db, "pontos", docIdSelecionado), { hora: novoValor });
+        } else {
+          const novoDoc = await addDoc(collection(db, "pontos"), {
+            cpf: cpfSelecionado,
+            data: dataFirestore,
+            tipo: tipoSelecionado,
+            hora: novoValor,
+          });
+          docIdSelecionado = novoDoc.id; // Armazena o ID do novo doc
+        }
+
+        celulaSelecionada.textContent = novoValor;
+        alert("Ponto salvo com sucesso!");
+      } catch (err) {
+        console.error("Erro ao salvar:", err);
+        alert("Erro ao salvar no banco de dados!");
+      }
+
+      fecharPopup();
+    });
+
+    document.getElementById("btnExcluir").addEventListener("click", async () => {
+      if (!celulaSelecionada) return;
+
+      try {
+        if (docIdSelecionado) {
+          await deleteDoc(doc(db, "pontos", docIdSelecionado));
+        }
+        celulaSelecionada.textContent = "-";
+        alert("Ponto excluído com sucesso!");
+      } catch (err) {
+        console.error("Erro ao excluir:", err);
+        alert("Erro ao excluir do banco de dados!");
+      }
+
+      fecharPopup();
+    });
+
+    // ==========================
+    // 🔹 Painel Pendentes
+    // ==========================
+    btnAbrirPendentes.addEventListener("click", carregarPendentes);
+    btnFecharPendentes.addEventListener("click", () =>
+      painelPendentes.classList.remove("ativo")
+    );
+
+    async function carregarPendentes() {
+      painelPendentes.classList.add("ativo");
+      listaPendentes.innerHTML = "<p>Carregando...</p>";
+
+      const hoje = new Date().toISOString().split("T")[0]; // formato YYYY-MM-DD
+      const colRef = collection(db, "pontos");
+
+      try {
+        const snapshot = await getDocs(colRef);
+        const pontosHoje = {};
+        snapshot.forEach((docSnap) => {
+          const d = docSnap.data();
+          if (d.data === hoje) {
+            if (!pontosHoje[d.cpf]) pontosHoje[d.cpf] = {};
+            pontosHoje[d.cpf][d.tipo] = d.hora;
+          }
+        });
+
+        const tiposDePonto = [
+          "entrada_manha",
+          "saida_almoco",
+          "retorno_almoco",
+          "saida_tarde",
+        ];
+
+        const pendentes = funcionarios
+          .map((f) => {
+            const p = pontosHoje[f.cpf] || {};
+            const faltando = tiposDePonto.filter((t) => !p[t]);
+            return { nome: f.nome, cpf: f.cpf, faltando };
+          })
+          .filter((f) => f.faltando.length > 0);
+
+        if (pendentes.length === 0) {
+          listaPendentes.innerHTML = "<p>Todos os funcionários estão em dia ✅</p>";
+          return;
+        }
+
+        listaPendentes.innerHTML = pendentes
+          .map(
+            (p) => `
+            <div>
+              <strong>${p.nome}</strong> (${p.cpf})<br>
+              <small>Faltando: ${p.faltando.join(", ")}</small>
+            </div>
+          `
+          )
+          .join("");
+      } catch (e) {
+        console.error("Erro ao carregar pendentes:", e);
+        listaPendentes.innerHTML = "<p>Erro ao carregar dados.</p>";
+      }
+    }
+    
+    // Funções de Exportação (ainda não implementadas)
+    function exportarPDF() {
+      alert("Função Exportar PDF ainda não implementada.");
+    }
+    window.exportarPDF = exportarPDF;
+
+  </script>
 </body>
 </html>
