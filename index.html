@@ -669,9 +669,129 @@ function exportarPDF() {
   alert("Função Exportar PDF ainda não implementada.");
 }
 window.exportarPDF = exportarPDF;
+
+      // ==========================
+// 🔹 POPUP DE EDIÇÃO DE PONTO
+// ==========================
+const campoValor = document.getElementById("campoValor");
+const btnSalvar = document.getElementById("btnSalvar");
+const btnExcluir = document.getElementById("btnExcluir");
+const btnFechar = document.getElementById("btnFechar");
+const popupTitulo = document.getElementById("popupTitulo");
+
+let pontoSelecionado = {
+  data: null,
+  tipo: null,
+  cpf: null,
+  valorAtual: null,
+};
+
+// ✅ Abrir popup ao clicar em qualquer célula de ponto
+document.addEventListener("click", (e) => {
+  const celula = e.target.closest("td[data-tipo]");
+  if (!celula) return;
+
+  if (!cpfSelecionado) {
+    alert("Selecione um funcionário primeiro!");
+    return;
+  }
+
+  const linha = celula.parentElement;
+  const dataTexto = linha.querySelector("td").textContent;
+  const [dia, mes, ano] = dataTexto.split("/");
+  const dataISO = `${ano}-${mes}-${dia}`;
+
+  pontoSelecionado = {
+    data: dataISO,
+    tipo: celula.dataset.tipo,
+    cpf: cpfSelecionado,
+    valorAtual: celula.textContent.trim() !== "-" ? celula.textContent.trim() : "",
+  };
+
+  popupTitulo.textContent = `Ponto - ${pontoSelecionado.tipo.replace("_", " ")}`;
+  campoValor.value = pontoSelecionado.valorAtual;
+  overlay.style.display = "flex";
+});
+
+// ✅ Fechar popup
+btnFechar.onclick = () => {
+  overlay.style.display = "none";
+  campoValor.value = "";
+};
+
+// ✅ Salvar (adicionar ou editar)
+btnSalvar.onclick = async () => {
+  const hora = campoValor.value.trim();
+
+  if (!hora) {
+    alert("Digite um horário válido (HH:MM:SS)!");
+    return;
+  }
+
+  const { cpf, data, tipo } = pontoSelecionado;
+  if (!cpf || !data || !tipo) {
+    alert("Dados do ponto incompletos!");
+    return;
+  }
+
+  try {
+    const colRef = collection(db, "pontos");
+    const q = query(colRef, where("cpf", "==", cpf), where("data", "==", data), where("tipo", "==", tipo));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      // Adiciona novo ponto
+      await addDoc(colRef, { cpf, data, tipo, hora });
+      alert("✅ Ponto adicionado com sucesso!");
+    } else {
+      // Atualiza ponto existente
+      const docRef = snapshot.docs[0].ref;
+      await updateDoc(docRef, { hora });
+      alert("✅ Ponto atualizado com sucesso!");
+    }
+
+    overlay.style.display = "none";
+    buscarPontos(); // Atualiza a tabela
+  } catch (e) {
+    console.error("❌ Erro ao salvar ponto:", e);
+    alert("Erro ao salvar ponto.");
+  }
+};
+
+// ✅ Excluir ponto
+btnExcluir.onclick = async () => {
+  const { cpf, data, tipo } = pontoSelecionado;
+  if (!cpf || !data || !tipo) {
+    alert("Dados do ponto incompletos!");
+    return;
+  }
+
+  if (!confirm("Tem certeza que deseja excluir este ponto?")) return;
+
+  try {
+    const colRef = collection(db, "pontos");
+    const q = query(colRef, where("cpf", "==", cpf), where("data", "==", data), where("tipo", "==", tipo));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      alert("Nenhum ponto encontrado para excluir.");
+      return;
+    }
+
+    await deleteDoc(snapshot.docs[0].ref);
+    alert("🗑️ Ponto excluído com sucesso!");
+    overlay.style.display = "none";
+    buscarPontos(); // Atualiza a tabela
+  } catch (e) {
+    console.error("❌ Erro ao excluir ponto:", e);
+    alert("Erro ao excluir ponto.");
+  }
+};
+
 </script>
 
 </body>
 </html>
+
 
 
