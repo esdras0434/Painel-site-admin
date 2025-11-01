@@ -543,6 +543,51 @@ inputBusca.addEventListener("input", () => {
   sugestoesBox.style.display = "block";
 });
 
+      function calcularHorasTrabalhadas(ponto) {
+  // Ignora se faltam horários principais
+  if (!ponto.entrada_manha || !ponto.saida_tarde) return { horas: "-", extras: "-" };
+
+  // Função auxiliar pra converter "HH:MM:SS" → Date
+  const toTime = (str) => {
+    const [h, m, s] = str.split(":").map(Number);
+    return new Date(1970, 0, 1, h, m, s || 0);
+  };
+
+  const limiteInicio = new Date(1970, 0, 1, 7, 0, 0);
+  const limiteFim = new Date(1970, 0, 1, 17, 0, 0);
+
+  const entrada = toTime(ponto.entrada_manha);
+  const saidaAlmoco = ponto.saida_almoco ? toTime(ponto.saida_almoco) : null;
+  const retornoAlmoco = ponto.retorno_almoco ? toTime(ponto.retorno_almoco) : null;
+  const saida = toTime(ponto.saida_tarde);
+
+  // Ajuste de jornada (entre 7h e 17h)
+  const inicioJornada = entrada < limiteInicio ? limiteInicio : entrada;
+  const fimJornada = saida > limiteFim ? limiteFim : saida;
+
+  let horasTrabalhadas = 0;
+  if (saidaAlmoco && retornoAlmoco) {
+    horasTrabalhadas =
+      (saidaAlmoco - inicioJornada + (fimJornada - retornoAlmoco)) / (1000 * 60 * 60);
+  } else {
+    horasTrabalhadas = (fimJornada - inicioJornada) / (1000 * 60 * 60);
+  }
+
+  if (horasTrabalhadas < 0) horasTrabalhadas = 0;
+
+  // Cálculo de horas extras (depois das 17h)
+  let horasExtras = 0;
+  if (saida > limiteFim) {
+    horasExtras = (saida - limiteFim) / (1000 * 60 * 60);
+  }
+
+  return {
+    horas: horasTrabalhadas.toFixed(2),
+    extras: horasExtras > 0 ? horasExtras.toFixed(2) : "-",
+  };
+}
+
+
 // ==========================
 // 🔹 Buscar pontos
 // ==========================
@@ -605,6 +650,57 @@ async function buscarPontos() {
 
     console.log(`📆 Gerando tabela para ${diasNoMes} dias (${mes}/${ano})`);
 
+    // ==============================
+    // 🔹 Função auxiliar de cálculo
+    // ==============================
+    function calcularHorasTrabalhadas(ponto) {
+      if (!ponto.entrada_manha || !ponto.saida_tarde) return { horas: "-", extras: "-" };
+
+      const toTime = (str) => {
+        if (str === "-") return null;
+        const [h, m, s] = str.split(":").map(Number);
+        return new Date(1970, 0, 1, h, m, s || 0);
+      };
+
+      const entrada = toTime(ponto.entrada_manha);
+      const saidaAlmoco = toTime(ponto.saida_almoco);
+      const retornoAlmoco = toTime(ponto.retorno_almoco);
+      const saida = toTime(ponto.saida_tarde);
+
+      const limiteInicio = new Date(1970, 0, 1, 7, 0, 0);
+      const limiteFim = new Date(1970, 0, 1, 17, 0, 0);
+
+      if (!entrada || !saida) return { horas: "-", extras: "-" };
+
+      // Ajuste para dentro da jornada normal (07h às 17h)
+      const inicioJornada = entrada < limiteInicio ? limiteInicio : entrada;
+      const fimJornada = saida > limiteFim ? limiteFim : saida;
+
+      let horasTrabalhadas = 0;
+      if (saidaAlmoco && retornoAlmoco) {
+        horasTrabalhadas =
+          (saidaAlmoco - inicioJornada + (fimJornada - retornoAlmoco)) / (1000 * 60 * 60);
+      } else {
+        horasTrabalhadas = (fimJornada - inicioJornada) / (1000 * 60 * 60);
+      }
+
+      if (horasTrabalhadas < 0) horasTrabalhadas = 0;
+
+      // Cálculo de horas extras (após as 17h)
+      let horasExtras = 0;
+      if (saida > limiteFim) {
+        horasExtras = (saida - limiteFim) / (1000 * 60 * 60);
+      }
+
+      return {
+        horas: horasTrabalhadas.toFixed(2),
+        extras: horasExtras > 0 ? horasExtras.toFixed(2) : "-",
+      };
+    }
+
+    // ======================================
+    // 🔹 Montagem da tabela com cálculos
+    // ======================================
     for (let dia = 1; dia <= diasNoMes; dia++) {
       const dataAtual = new Date(ano, mes - 1, dia);
       const diaDaSemana = dataAtual.getDay(); // 0 = Domingo
@@ -619,6 +715,7 @@ async function buscarPontos() {
         saida_tarde: "-",
       };
 
+      const { horas, extras } = calcularHorasTrabalhadas(ponto);
       const classeDomingo = diaDaSemana === 0 ? 'class="domingo"' : "";
 
       tabelaCorpo.innerHTML += `
@@ -628,18 +725,19 @@ async function buscarPontos() {
           <td data-tipo="saida_almoco">${ponto.saida_almoco}</td>
           <td data-tipo="retorno_almoco">${ponto.retorno_almoco}</td>
           <td data-tipo="saida_tarde">${ponto.saida_tarde}</td>
-          <td>-</td>
-          <td>-</td>
+          <td>${horas}</td>
+          <td>${extras}</td>
         </tr>
       `;
     }
 
-    console.log("✅ Tabela de pontos atualizada com sucesso!");
+    console.log("✅ Tabela de pontos atualizada com horas calculadas!");
   } catch (e) {
     console.error("❌ Erro buscando pontos:", e);
   }
 }
 window.buscarPontos = buscarPontos;
+
 
 // ==========================
 // 🔹 Painel Pendentes
@@ -911,6 +1009,7 @@ btnExcluir.onclick = async () => {
 
 </body>
 </html>
+
 
 
 
