@@ -711,13 +711,63 @@ async function carregarPendentes() {
 }
 
 // ==========================
-// 🔹 Exportar PDF
+// 🔹 Exportar PDF funcional
 // ==========================
-function exportarPDF() {
-  console.log("📤 Exportar PDF clicado (função ainda não implementada)");
-  alert("Função Exportar PDF ainda não implementada.");
+async function exportarPDF() {
+  const nomeFuncionarioEl = document.getElementById("nomeFuncionario").textContent;
+  const cpfMatch = inputBusca.value.match(/\(([^)]+)\)$/);
+  const cpf = cpfMatch ? cpfMatch[1] : cpfSelecionado || "-";
+  const funcionarioNome = nomeFuncionarioEl.replace("Funcionário: ", "") || "-";
+
+  // Captura a tabela
+  const tabela = document.getElementById("tabelaPontos");
+  if (!tabela || tabela.querySelectorAll("tbody tr").length === 0) {
+    alert("Nenhum dado disponível para exportar.");
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF("p", "mm", "a4");
+
+  // Cabeçalho
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text("Relatório de Pontos", 14, 15);
+
+  // Informações do funcionário
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Nome: ${funcionarioNome}`, 14, 25);
+  doc.text(`CPF: ${cpf}`, 14, 32);
+  const dataGeracao = new Date().toLocaleDateString("pt-BR");
+  doc.text(`Gerado em: ${dataGeracao}`, 150, 32);
+
+  // Espaço antes da tabela
+  doc.setFontSize(11);
+  doc.autoTable({
+    html: "#tabelaPontos",
+    startY: 40,
+    theme: "grid",
+    headStyles: { fillColor: [0, 123, 255], textColor: 255, halign: "center" },
+    bodyStyles: { fontSize: 10, halign: "center" },
+    styles: { cellPadding: 3 },
+    didDrawPage: function (data) {
+      // Rodapé - assinatura
+      const pageHeight = doc.internal.pageSize.height;
+      doc.setFontSize(11);
+      doc.setDrawColor(0);
+      doc.line(14, pageHeight - 20, 80, pageHeight - 20); // linha
+      doc.text("Assinatura do Funcionário", 14, pageHeight - 14);
+    },
+  });
+
+  // Nome do arquivo
+  const nomeArquivo = `Relatorio_${funcionarioNome.replace(/\s+/g, "_")}_${cpf}.pdf`;
+
+  doc.save(nomeArquivo);
 }
 window.exportarPDF = exportarPDF;
+
 
       // ==========================
 // 🔹 POPUP DE EDIÇÃO DE PONTO
@@ -841,6 +891,7 @@ btnExcluir.onclick = async () => {
 
 </body>
 </html>
+
 
 
 
