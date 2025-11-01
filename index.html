@@ -654,10 +654,10 @@ async function buscarPontos() {
     // 🔹 Função auxiliar de cálculo
     // ==============================
     function calcularHorasTrabalhadas(ponto) {
-      if (!ponto.entrada_manha || !ponto.saida_tarde) return { horas: "-", extras: "-" };
+      if (!ponto.entrada_manha || !ponto.saida_tarde) return { horas: 0, extras: 0 };
 
       const toTime = (str) => {
-        if (str === "-") return null;
+        if (!str || str === "-") return null;
         const [h, m, s] = str.split(":").map(Number);
         return new Date(1970, 0, 1, h, m, s || 0);
       };
@@ -670,9 +670,8 @@ async function buscarPontos() {
       const limiteInicio = new Date(1970, 0, 1, 7, 0, 0);
       const limiteFim = new Date(1970, 0, 1, 17, 0, 0);
 
-      if (!entrada || !saida) return { horas: "-", extras: "-" };
+      if (!entrada || !saida) return { horas: 0, extras: 0 };
 
-      // Ajuste para dentro da jornada normal (07h às 17h)
       const inicioJornada = entrada < limiteInicio ? limiteInicio : entrada;
       const fimJornada = saida > limiteFim ? limiteFim : saida;
 
@@ -686,21 +685,24 @@ async function buscarPontos() {
 
       if (horasTrabalhadas < 0) horasTrabalhadas = 0;
 
-      // Cálculo de horas extras (após as 17h)
+      // Horas extras (após 17h)
       let horasExtras = 0;
       if (saida > limiteFim) {
         horasExtras = (saida - limiteFim) / (1000 * 60 * 60);
       }
 
       return {
-        horas: horasTrabalhadas.toFixed(2),
-        extras: horasExtras > 0 ? horasExtras.toFixed(2) : "-",
+        horas: parseFloat(horasTrabalhadas.toFixed(2)),
+        extras: parseFloat(horasExtras.toFixed(2)),
       };
     }
 
     // ======================================
     // 🔹 Montagem da tabela com cálculos
     // ======================================
+    let totalHoras = 0;
+    let totalExtras = 0;
+
     for (let dia = 1; dia <= diasNoMes; dia++) {
       const dataAtual = new Date(ano, mes - 1, dia);
       const diaDaSemana = dataAtual.getDay(); // 0 = Domingo
@@ -716,6 +718,10 @@ async function buscarPontos() {
       };
 
       const { horas, extras } = calcularHorasTrabalhadas(ponto);
+
+      totalHoras += horas;
+      totalExtras += extras;
+
       const classeDomingo = diaDaSemana === 0 ? 'class="domingo"' : "";
 
       tabelaCorpo.innerHTML += `
@@ -725,13 +731,24 @@ async function buscarPontos() {
           <td data-tipo="saida_almoco">${ponto.saida_almoco}</td>
           <td data-tipo="retorno_almoco">${ponto.retorno_almoco}</td>
           <td data-tipo="saida_tarde">${ponto.saida_tarde}</td>
-          <td>${horas}</td>
-          <td>${extras}</td>
+          <td>${horas ? horas.toFixed(2) : "-"}</td>
+          <td>${extras > 0 ? extras.toFixed(2) : "-"}</td>
         </tr>
       `;
     }
 
-    console.log("✅ Tabela de pontos atualizada com horas calculadas!");
+    // ======================================
+    // 🔹 Linha total no final da tabela
+    // ======================================
+    tabelaCorpo.innerHTML += `
+      <tr style="font-weight:bold; background:#e3f2fd;">
+        <td colspan="5" style="text-align:right;">TOTAL:</td>
+        <td>${totalHoras.toFixed(2)}</td>
+        <td>${totalExtras.toFixed(2)}</td>
+      </tr>
+    `;
+
+    console.log("✅ Tabela de pontos atualizada com totais!");
   } catch (e) {
     console.error("❌ Erro buscando pontos:", e);
   }
@@ -1009,6 +1026,7 @@ btnExcluir.onclick = async () => {
 
 </body>
 </html>
+
 
 
 
