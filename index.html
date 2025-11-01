@@ -711,7 +711,7 @@ async function carregarPendentes() {
 }
 
 // ==========================
-// 🔹 Exportar PDF funcional
+// 🔹 Exportar PDF otimizado (1 folha A4)
 // ==========================
 async function exportarPDF() {
   const nomeFuncionarioEl = document.getElementById("nomeFuncionario").textContent;
@@ -731,42 +731,62 @@ async function exportarPDF() {
 
   // Cabeçalho
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
+  doc.setFontSize(14);
   doc.text("Relatório de Pontos", 14, 15);
 
   // Informações do funcionário
-  doc.setFontSize(12);
+  doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  doc.text(`Nome: ${funcionarioNome}`, 14, 25);
-  doc.text(`CPF: ${cpf}`, 14, 32);
+  doc.text(`Nome: ${funcionarioNome}`, 14, 22);
+  doc.text(`CPF: ${cpf}`, 14, 27);
   const dataGeracao = new Date().toLocaleDateString("pt-BR");
-  doc.text(`Gerado em: ${dataGeracao}`, 150, 32);
+  doc.text(`Gerado em: ${dataGeracao}`, 150, 27);
 
-  // Espaço antes da tabela
-  doc.setFontSize(11);
+  // Tabela reduzida
   doc.autoTable({
     html: "#tabelaPontos",
-    startY: 40,
+    startY: 33,
     theme: "grid",
-    headStyles: { fillColor: [0, 123, 255], textColor: 255, halign: "center" },
-    bodyStyles: { fontSize: 10, halign: "center" },
-    styles: { cellPadding: 3 },
+    styles: {
+      fontSize: 8,           // 🔹 fonte menor
+      cellPadding: 2,
+      lineWidth: 0.1,
+      halign: "center",
+      valign: "middle",
+    },
+    headStyles: {
+      fillColor: [0, 123, 255],
+      textColor: 255,
+      fontSize: 8,
+    },
+    bodyStyles: {
+      fontSize: 7.5,
+    },
+    columnStyles: {
+      0: { cellWidth: 20 },  // Data
+      1: { cellWidth: 25 },
+      2: { cellWidth: 25 },
+      3: { cellWidth: 25 },
+      4: { cellWidth: 25 },
+      5: { cellWidth: 25 },
+      6: { cellWidth: 25 },
+    },
+    margin: { left: 10, right: 10 },
     didDrawPage: function (data) {
-      // Rodapé - assinatura
+      // Linha de assinatura no rodapé
       const pageHeight = doc.internal.pageSize.height;
-      doc.setFontSize(11);
       doc.setDrawColor(0);
-      doc.line(14, pageHeight - 20, 80, pageHeight - 20); // linha
+      doc.line(14, pageHeight - 20, 90, pageHeight - 20);
       doc.text("Assinatura do Funcionário", 14, pageHeight - 14);
     },
   });
 
   // Nome do arquivo
   const nomeArquivo = `Relatorio_${funcionarioNome.replace(/\s+/g, "_")}_${cpf}.pdf`;
-
   doc.save(nomeArquivo);
 }
 window.exportarPDF = exportarPDF;
+
 
 
       // ==========================
@@ -891,6 +911,7 @@ btnExcluir.onclick = async () => {
 
 </body>
 </html>
+
 
 
 
