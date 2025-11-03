@@ -887,13 +887,14 @@ async function exportarPDF() {
       6: { cellWidth: 25 },
     },
     margin: { left: 10, right: 10 },
-    didDrawPage: function (data) {
-      // Linha de assinatura no rodapé
-      const pageHeight = doc.internal.pageSize.height;
-      doc.setDrawColor(0);
-      doc.line(14, pageHeight - 20, 90, pageHeight - 20);
-      doc.text("Assinatura do Funcionário", 14, pageHeight - 14);
-    },
+didDrawPage: function (data) {
+  const pageHeight = doc.internal.pageSize.height;
+  doc.setDrawColor(0);
+
+  // Move a linha mais pra baixo (exemplo: -10)
+  const posY = pageHeight - 10; 
+  doc.line(14, posY, 90, posY);
+  doc.text("Assinatura do Funcionário", 14, posY + 6);
   });
 
   // Nome do arquivo
@@ -1026,6 +1027,7 @@ btnExcluir.onclick = async () => {
 
 </body>
 </html>
+
 
 
 
