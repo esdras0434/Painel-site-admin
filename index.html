@@ -1231,32 +1231,44 @@ animarNeve();
 
 
 const papaiNoel = document.getElementById("papaiNoel");
-let direcao = 1; // 1 = direita, -1 = esquerda
+let x = 0;           // posição horizontal
+let y = 100;         // posição vertical inicial
+let velocidadeX = 2; // pixels por frame
+let velocidadeY = 0.5; // ligeiro sobe e desce
 
-function moverPapaiNoel() {
-  const largura = window.innerWidth;
-  const altura = window.innerHeight;
+// define tamanho da tela
+function atualizarTela() {
+  larguraTela = window.innerWidth;
+  alturaTela = window.innerHeight;
+}
+window.addEventListener("resize", atualizarTela);
+atualizarTela();
 
-  // posição aleatória no eixo Y (voando um pouco acima do rodapé)
-  const novaPosY = Math.random() * (altura - 300) + 50;
-  // posição aleatória no eixo X
-  const novaPosX = Math.random() * (largura - 200);
+function animarPapaiNoel() {
+  x += velocidadeX;
+  y += velocidadeY;
 
-  // vira o Papai Noel conforme a direção do movimento
-  direcao = novaPosX > (parseFloat(papaiNoel.style.left) || 0) ? 1 : -1;
+  // se bater no topo ou rodapé, inverte vertical
+  if (y < 50 || y > alturaTela - 150) velocidadeY *= -1;
 
-  papaiNoel.style.transform = `translate(${novaPosX}px, ${novaPosY}px) scaleX(${direcao})`;
+  // se sair da tela horizontalmente, reaparece do lado oposto
+  if (x > larguraTela) x = -200; // largura do Papai Noel
+  if (x < -200) x = larguraTela;
+
+  // aplica posição e orientação
+  const direcao = velocidadeX > 0 ? 1 : -1;
+  papaiNoel.style.transform = `translate(${x}px, ${y}px) scaleX(${direcao})`;
+
+  requestAnimationFrame(animarPapaiNoel);
 }
 
-// movimenta a cada 5 segundos
-setInterval(moverPapaiNoel, 5000);
-moverPapaiNoel();
-
+animarPapaiNoel();
 
 </script>
 
 </body>
 </html>
+
 
 
 
