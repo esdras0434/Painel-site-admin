@@ -432,6 +432,17 @@
   50% { opacity: 1; box-shadow: 0 0 20px rgba(255,255,255,0.8); }
 }
 
+     #papaiNoel {
+  position: fixed;
+  width: 180px; /* ajuste conforme o tamanho do GIF */
+  bottom: 50px; /* altura inicial */
+  left: 0;
+  z-index: 9999;
+  pointer-events: none; /* não atrapalha cliques */
+  transition: transform 4s ease-in-out;
+}
+
+
 
      #neve {
   position: fixed;
@@ -453,6 +464,9 @@
   <span></span><span></span><span></span><span></span><span></span>
 </div>
 <canvas id="neve"></canvas>
+
+  <img src="/imagens/noel.gif" id="papaiNoel" alt="Papai Noel andando">
+
 
 <body>
   <div class="container">
@@ -1211,10 +1225,36 @@ function animarNeve() {
   requestAnimationFrame(animarNeve);
 }
 animarNeve();
+
+
+const papaiNoel = document.getElementById("papaiNoel");
+let direcao = 1; // 1 = direita, -1 = esquerda
+
+function moverPapaiNoel() {
+  const largura = window.innerWidth;
+  const altura = window.innerHeight;
+
+  // posição aleatória no eixo Y (voando um pouco acima do rodapé)
+  const novaPosY = Math.random() * (altura - 300) + 50;
+  // posição aleatória no eixo X
+  const novaPosX = Math.random() * (largura - 200);
+
+  // vira o Papai Noel conforme a direção do movimento
+  direcao = novaPosX > (parseFloat(papaiNoel.style.left) || 0) ? 1 : -1;
+
+  papaiNoel.style.transform = `translate(${novaPosX}px, ${novaPosY}px) scaleX(${direcao})`;
+}
+
+// movimenta a cada 5 segundos
+setInterval(moverPapaiNoel, 5000);
+moverPapaiNoel();
+
+
 </script>
 
 </body>
 </html>
+
 
 
 
