@@ -188,87 +188,72 @@
   }
 
 /* ==========================
-    🪟 POPUP LATERAL DIREITO
+    🪟 POPUP FLUTUANTE PEQUENO
 ========================== */
 .popup-overlay {
   position: fixed;
   top: 0;
-  right: 0;
-  width: 380px;
+  left: 0;
+  width: 100%;
   height: 100%;
-  background-color: rgba(0,0,0,0.3);
   display: none;
-  justify-content: flex-end;
-  align-items: flex-start;
   z-index: 9999;
-  animation: fadeIn 0.3s ease;
+  background: transparent; /* 🔹 sem escurecer o fundo */
 }
 
 .popup {
+  position: absolute;
   background: #fff;
-  width: 100%;
-  height: 100%;
-  padding: 30px 25px;
-  border-radius: 0;
-  box-shadow: -4px 0 20px rgba(0,0,0,0.2);
+  padding: 15px 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+  width: 220px; /* 🔹 popup menor */
   text-align: left;
-  animation: slideInRight 0.35s ease forwards;
-  overflow-y: auto;
+  z-index: 10000;
+  animation: fadeInPopup 0.2s ease;
+}
+
+@keyframes fadeInPopup {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .popup h3 {
-  margin-top: 10px;
-  margin-bottom: 20px;
+  font-size: 1em;
   color: #007bff;
-  font-size: 1.2em;
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.popup input {
+  width: 100%;
+  padding: 6px 8px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
 }
 
 .popup .botoes {
   display: flex;
   justify-content: space-between;
-  margin-top: 20px;
+  gap: 5px;
 }
 
 .popup button {
   flex: 1;
-  margin: 0 5px;
-  padding: 10px;
+  padding: 8px;
+  font-size: 13px;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
-  font-weight: 600;
-  transition: background 0.25s;
+  color: #fff;
 }
 
-.popup button.salvar {
-  background-color: #28a745;
-  color: white;
-}
+.popup button.salvar { background-color: #28a745; }
+.popup button.excluir { background-color: #dc3545; }
+.popup button.cancelar { background-color: #6c757d; }
 
-.popup button.excluir {
-  background-color: #dc3545;
-  color: white;
-}
-
-.popup button.cancelar {
-  background-color: #6c757d;
-  color: white;
-}
-
-.popup button:hover {
-  opacity: 0.9;
-}
-
-/* Animações */
-@keyframes slideInRight {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}
-
-@keyframes fadeIn {
-  from { background-color: rgba(0,0,0,0); }
-  to { background-color: rgba(0,0,0,0.3); }
-}
   /* ==========================
       ⚡ BOTÃO FLUTUANTE
   ========================== */
@@ -946,7 +931,30 @@ document.addEventListener("click", (e) => {
 
   popupTitulo.textContent = `Ponto - ${pontoSelecionado.tipo.replace("_", " ")}`;
   campoValor.value = pontoSelecionado.valorAtual;
-  overlay.style.display = "flex";
+  // 🔹 Mostrar popup pequeno perto da célula clicada
+overlay.style.display = "block";
+
+const popup = overlay.querySelector(".popup");
+
+// Pega posição do clique
+const rect = celula.getBoundingClientRect();
+const popupWidth = 220;  // mesmo do CSS
+const popupHeight = 160; // altura aproximada do popup
+
+let left = rect.left + window.scrollX;
+let top = rect.bottom + window.scrollY + 6;
+
+// Evita que saia da tela
+if (left + popupWidth > window.innerWidth) {
+  left = window.innerWidth - popupWidth - 10;
+}
+if (top + popupHeight > window.innerHeight + window.scrollY) {
+  top = rect.top + window.scrollY - popupHeight - 6;
+}
+
+popup.style.left = `${left}px`;
+popup.style.top = `${top}px`;
+
 });
 
 // ✅ Fechar popup
@@ -1028,6 +1036,7 @@ btnExcluir.onclick = async () => {
 
 </body>
 </html>
+
 
 
 
