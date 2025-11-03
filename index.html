@@ -465,9 +465,7 @@
 </div>
 <canvas id="neve"></canvas>
 
-  <img src="https://i.pinimg.com/originals/76/f8/27/76f827e4fe0fdd57d944b90b624159a6.gif"
-     id="papaiNoel"
-     alt="Papai Noel andando">
+<img id="papaiNoel" src="https://i.pinimg.com/originals/76/f8/27/76f827e4fe0fdd57d944b90b624159a6.gif" style="position: absolute; width: 100px; top: 100px; left: 0; z-index: 9999;" />
 
 
 
@@ -1229,31 +1227,30 @@ function animarNeve() {
 }
 animarNeve();
 
-
 const papaiNoel = document.getElementById("papaiNoel");
-let x = 0;           // posição horizontal
-let y = 100;         // posição vertical inicial
-let velocidadeX = 2; // pixels por frame
-let velocidadeY = 0.5; // ligeiro sobe e desce
+let x = 0;             // posição horizontal
+let y = 100;           // posição vertical inicial
+let velocidadeX = 2;   // pixels por frame
+let velocidadeY = 1;   // pixels verticais
 
-// define tamanho da tela
-function atualizarTela() {
+// atualiza largura e altura da tela
+let larguraTela = window.innerWidth;
+let alturaTela = window.innerHeight;
+window.addEventListener("resize", () => {
   larguraTela = window.innerWidth;
   alturaTela = window.innerHeight;
-}
-window.addEventListener("resize", atualizarTela);
-atualizarTela();
+});
 
 function animarPapaiNoel() {
   x += velocidadeX;
   y += velocidadeY;
 
-  // se bater no topo ou rodapé, inverte vertical
+  // inverte vertical se bater no topo ou rodapé
   if (y < 50 || y > alturaTela - 150) velocidadeY *= -1;
 
-  // se sair da tela horizontalmente, reaparece do lado oposto
-  if (x > larguraTela) x = -200; // largura do Papai Noel
-  if (x < -200) x = larguraTela;
+  // reaparece do outro lado se sair da tela
+  if (x > larguraTela) x = -100;
+  if (x < -100) x = larguraTela;
 
   // aplica posição e orientação
   const direcao = velocidadeX > 0 ? 1 : -1;
@@ -1268,6 +1265,7 @@ animarPapaiNoel();
 
 </body>
 </html>
+
 
 
 
