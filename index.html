@@ -302,6 +302,74 @@
   }
 
      /* ==========================
+   📋 PAINEL DE PENDENTES (LATERAL DIREITA)
+========================== */
+.overlay-pendentes {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.3); /* escurece o fundo */
+  display: none;
+  justify-content: flex-end; /* empurra o painel pra direita */
+  z-index: 9000;
+}
+
+/* Corpo do painel lateral */
+.painel-pendentes {
+  background: #fff;
+  width: 380px;
+  height: 100%;
+  padding: 20px;
+  box-shadow: -3px 0 10px rgba(0,0,0,0.25);
+  border-radius: 0;
+  overflow-y: auto;
+  animation: slideInRight 0.3s ease;
+}
+
+/* Cabeçalho do painel */
+.painel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+
+.painel-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #007bff;
+}
+
+.btn-fechar-painel {
+  background: none;
+  border: none;
+  font-size: 1.6rem;
+  cursor: pointer;
+  color: #555;
+  transition: 0.2s;
+}
+
+.btn-fechar-painel:hover {
+  color: #000;
+}
+
+/* Lista interna */
+.lista-pendentes {
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+
+     /* ==========================
     🔍 AUTOCOMPLETE VISUAL
 ========================== */
 .autocomplete-container {
@@ -400,15 +468,18 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
-    <div id="painelPendentes" class="painel-pendentes">
-    <div class="painel-header">
-      <h3>Pontos Pendentes de Hoje</h3>
-      <button id="btnFecharPendentes">×</button>
-    </div>
-    <div id="listaPendentes" class="lista-pendentes">
-      <p>Carregando...</p>
-    </div>
-  </div>
+   <!-- 🔹 Overlay da lista de pendentes -->
+<div id="overlay-pendentes" class="overlay-pendentes">
+  <div id="painelPendentes" class="painel-pendentes">
+    <div class="painel-header">
+      <h3>Pontos Pendentes de Hoje</h3>
+      <button id="btnFecharPendentes" class="btn-fechar-painel">×</button>
+    </div>
+    <div id="listaPendentes" class="lista-pendentes">
+      <p>Carregando...</p>
+    </div>
+  </div>
+</div>
 
   <button id="btnAbrirPendentes" class="btn-flutuante">⚡ Pendentes</button>
 
@@ -744,10 +815,15 @@ window.buscarPontos = buscarPontos;
 // ==========================
 // 🔹 Painel Pendentes
 // ==========================
-btnAbrirPendentes.addEventListener("click", carregarPendentes);
-btnFecharPendentes.addEventListener("click", () =>
-  painelPendentes.classList.remove("ativo")
-);
+btnAbrirPendentes.addEventListener("click", () => {
+  document.getElementById("overlay-pendentes").style.display = "flex";
+  carregarPendentes();
+});
+
+btnFecharPendentes.addEventListener("click", () => {
+  document.getElementById("overlay-pendentes").style.display = "none";
+});
+
 
 async function carregarPendentes() {
   console.log("⚡ Carregando pontos pendentes...");
@@ -1036,6 +1112,7 @@ btnExcluir.onclick = async () => {
 
 </body>
 </html>
+
 
 
 
