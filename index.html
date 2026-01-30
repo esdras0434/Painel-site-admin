@@ -663,51 +663,6 @@ inputBusca.addEventListener("input", () => {
   sugestoesBox.style.display = "block";
 });
 
-      function calcularHorasTrabalhadas(ponto) {
-  // Ignora se faltam horários principais
-  if (!ponto.entrada_manha || !ponto.saida_tarde) return { horas: "-", extras: "-" };
-
-  // Função auxiliar pra converter "HH:MM:SS" → Date
-  const toTime = (str) => {
-    const [h, m, s] = str.split(":").map(Number);
-    return new Date(1970, 0, 1, h, m, s || 0);
-  };
-
-  const limiteInicio = new Date(1970, 0, 1, 7, 0, 0);
-  const limiteFim = new Date(1970, 0, 1, 17, 0, 0);
-
-  const entrada = toTime(ponto.entrada_manha);
-  const saidaAlmoco = ponto.saida_almoco ? toTime(ponto.saida_almoco) : null;
-  const retornoAlmoco = ponto.retorno_almoco ? toTime(ponto.retorno_almoco) : null;
-  const saida = toTime(ponto.saida_tarde);
-
-  // Ajuste de jornada (entre 7h e 17h)
-  const inicioJornada = entrada < limiteInicio ? limiteInicio : entrada;
-  const fimJornada = saida > limiteFim ? limiteFim : saida;
-
-  let horasTrabalhadas = 0;
-  if (saidaAlmoco && retornoAlmoco) {
-    horasTrabalhadas =
-      (saidaAlmoco - inicioJornada + (fimJornada - retornoAlmoco)) / (1000 * 60 * 60);
-  } else {
-    horasTrabalhadas = (fimJornada - inicioJornada) / (1000 * 60 * 60);
-  }
-
-  if (horasTrabalhadas < 0) horasTrabalhadas = 0;
-
-  // Cálculo de horas extras (depois das 17h)
-  let horasExtras = 0;
-  if (saida > limiteFim) {
-    horasExtras = (saida - limiteFim) / (1000 * 60 * 60);
-  }
-
-  return {
-    horas: horasTrabalhadas.toFixed(2),
-    extras: horasExtras > 0 ? horasExtras.toFixed(2) : "-",
-  };
-}
-
-
 // ==========================
 // 🔹 Buscar pontos
 // ==========================
@@ -1265,6 +1220,7 @@ animarPapaiNoel();
 
 </body>
 </html>
+
 
 
 
