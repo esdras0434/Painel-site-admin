@@ -458,13 +458,15 @@
 </style>
 
 </head>
+<body>
 
-  <div class="pisca-pisca">
+<div class="pisca-pisca">
   <span></span><span></span><span></span><span></span><span></span>
   <span></span><span></span><span></span><span></span><span></span>
 </div>
 
-<img id="papaiNoel" src="https://i.pinimg.com/originals/76/f8/27/76f827e4fe0fdd57d944b90b624159a6.gif" style="position: absolute; width: 100px; top: 100px; left: 0; z-index: 9999;" />
+<img id="papaiNoel" src="https://i.pinimg.com/originals/76/f8/27/76f827e4fe0fdd57d944b90b624159a6.gif" />
+
 
 
 
@@ -515,18 +517,27 @@
       <tbody></tbody>
     </table>
 
-        <div id="popupOverlay" class="popup-overlay">
-      <div class="popup">
-        <h3 id="popupTitulo">Editar Ponto</h3>
-        <input type="time" id="campoValor" step="1" />
-        <div class="botoes">
-          <button class="salvar" id="btnSalvar">Salvar</button>
-          <button class="excluir" id="btnExcluir">Excluir</button>
-          <button class="cancelar" id="btnFechar">Cancelar</button>
-        </div>
-      </div>
-    </div>
-  </div>
+     <div id="popupOverlay" class="popup-overlay">
+  <div class="popup">
+    <h3 id="popupTitulo">Editar Ponto</h3>
+
+    <input type="time" id="campoValor" step="1" />
+
+    <!-- 📸 FOTO DA BATIDA -->
+    <div id="fotoContainer" style="margin-top:10px; text-align:center; display:none;">
+      <p style="margin:5px 0;font-size:12px;">Foto da batida</p>
+      <img id="fotoBatida"
+           style="width:100%; max-width:220px; border-radius:8px; border:1px solid #ccc; cursor:pointer;" />
+    </div>
+
+    <div class="botoes">
+      <button class="salvar" id="btnSalvar">Salvar</button>
+      <button class="excluir" id="btnExcluir">Excluir</button>
+      <button class="cancelar" id="btnFechar">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
@@ -589,6 +600,9 @@ const painelPendentes = document.getElementById("painelPendentes");
 const listaPendentes = document.getElementById("listaPendentes");
 const btnAbrirPendentes = document.getElementById("btnAbrirPendentes");
 const btnFecharPendentes = document.getElementById("btnFecharPendentes");
+const fotoContainer = document.getElementById("fotoContainer");
+const fotoBatida = document.getElementById("fotoBatida");
+
 
 // ==========================
 // 🔹 Variáveis globais
@@ -669,6 +683,53 @@ inputBusca.addEventListener("input", () => {
   sugestoesBox.style.display = "block";
 });
 
+       // ==============================
+    // 🔹 Função auxiliar de cálculo
+    // ==============================
+    function calcularHorasTrabalhadas(ponto) {
+      if (!ponto.entrada_manha || !ponto.saida_tarde) return { horas: 0, extras: 0 };
+
+      const toTime = (str) => {
+        if (!str || str === "-") return null;
+        const [h, m, s] = str.split(":").map(Number);
+        return new Date(1970, 0, 1, h, m, s || 0);
+      };
+
+      const entrada = toTime(ponto.entrada_manha);
+      const saidaAlmoco = toTime(ponto.saida_almoco);
+      const retornoAlmoco = toTime(ponto.retorno_almoco);
+      const saida = toTime(ponto.saida_tarde);
+
+      const limiteInicio = new Date(1970, 0, 1, 7, 0, 0);
+      const limiteFim = new Date(1970, 0, 1, 17, 0, 0);
+
+      if (!entrada || !saida) return { horas: 0, extras: 0 };
+
+      const inicioJornada = entrada < limiteInicio ? limiteInicio : entrada;
+      const fimJornada = saida > limiteFim ? limiteFim : saida;
+
+      let horasTrabalhadas = 0;
+      if (saidaAlmoco && retornoAlmoco) {
+        horasTrabalhadas =
+          (saidaAlmoco - inicioJornada + (fimJornada - retornoAlmoco)) / (1000 * 60 * 60);
+      } else {
+        horasTrabalhadas = (fimJornada - inicioJornada) / (1000 * 60 * 60);
+      }
+
+      if (horasTrabalhadas < 0) horasTrabalhadas = 0;
+
+      // Horas extras (após 17h)
+      let horasExtras = 0;
+      if (saida > limiteFim) {
+        horasExtras = (saida - limiteFim) / (1000 * 60 * 60);
+      }
+
+      return {
+        horas: parseFloat(horasTrabalhadas.toFixed(2)),
+        extras: parseFloat(horasExtras.toFixed(2)),
+      };
+    }
+
 // ==========================
 // 🔹 Buscar pontos
 // ==========================
@@ -731,53 +792,6 @@ async function buscarPontos() {
 
     console.log(`📆 Gerando tabela para ${diasNoMes} dias (${mes}/${ano})`);
 
-    // ==============================
-    // 🔹 Função auxiliar de cálculo
-    // ==============================
-    function calcularHorasTrabalhadas(ponto) {
-      if (!ponto.entrada_manha || !ponto.saida_tarde) return { horas: 0, extras: 0 };
-
-      const toTime = (str) => {
-        if (!str || str === "-") return null;
-        const [h, m, s] = str.split(":").map(Number);
-        return new Date(1970, 0, 1, h, m, s || 0);
-      };
-
-      const entrada = toTime(ponto.entrada_manha);
-      const saidaAlmoco = toTime(ponto.saida_almoco);
-      const retornoAlmoco = toTime(ponto.retorno_almoco);
-      const saida = toTime(ponto.saida_tarde);
-
-      const limiteInicio = new Date(1970, 0, 1, 7, 0, 0);
-      const limiteFim = new Date(1970, 0, 1, 17, 0, 0);
-
-      if (!entrada || !saida) return { horas: 0, extras: 0 };
-
-      const inicioJornada = entrada < limiteInicio ? limiteInicio : entrada;
-      const fimJornada = saida > limiteFim ? limiteFim : saida;
-
-      let horasTrabalhadas = 0;
-      if (saidaAlmoco && retornoAlmoco) {
-        horasTrabalhadas =
-          (saidaAlmoco - inicioJornada + (fimJornada - retornoAlmoco)) / (1000 * 60 * 60);
-      } else {
-        horasTrabalhadas = (fimJornada - inicioJornada) / (1000 * 60 * 60);
-      }
-
-      if (horasTrabalhadas < 0) horasTrabalhadas = 0;
-
-      // Horas extras (após 17h)
-      let horasExtras = 0;
-      if (saida > limiteFim) {
-        horasExtras = (saida - limiteFim) / (1000 * 60 * 60);
-      }
-
-      return {
-        horas: parseFloat(horasTrabalhadas.toFixed(2)),
-        extras: parseFloat(horasExtras.toFixed(2)),
-      };
-    }
-
     // ======================================
     // 🔹 Montagem da tabela com cálculos
     // ======================================
@@ -797,6 +811,7 @@ async function buscarPontos() {
         retorno_almoco: "-",
         saida_tarde: "-",
       };
+  
 
       const { horas, extras } = calcularHorasTrabalhadas(ponto);
 
@@ -1010,8 +1025,38 @@ let pontoSelecionado = {
   valorAtual: null,
 };
 
+      // ==========================
+// 🔹 Buscar foto da batida
+// ==========================
+async function buscarFotoBatida(cpf, data, tipo) {
+  try {
+    const q = query(
+      collection(db, "pontos"),
+      where("cpf", "==", cpf),
+      where("data", "==", data),
+      where("tipo", "==", tipo)
+    );
+
+    const snapshot = await getDocs(q);
+
+    if (!snapshot.empty) {
+      const dados = snapshot.docs[0].data();
+      return dados.foto_url || null;
+    }
+
+    return null;
+  } catch (e) {
+    console.error("Erro buscando foto:", e);
+    return null;
+  }
+}
+
+
 // ✅ Abrir popup ao clicar em qualquer célula de ponto
-document.addEventListener("click", (e) => {
+document.addEventListener("click", async (e) => {
+  // ❌ Ignora cliques dentro do popup
+  if (e.target.closest(".popup")) return;
+
   const celula = e.target.closest("td[data-tipo]");
   if (!celula) return;
 
@@ -1034,37 +1079,69 @@ document.addEventListener("click", (e) => {
 
   popupTitulo.textContent = `Ponto - ${pontoSelecionado.tipo.replace("_", " ")}`;
   campoValor.value = pontoSelecionado.valorAtual;
-  // 🔹 Mostrar popup pequeno perto da célula clicada
-overlay.style.display = "block";
 
+  fotoContainer.style.display = "none";
+  fotoBatida.src = "";
+
+  const fotoUrl = await buscarFotoBatida(
+    pontoSelecionado.cpf,
+    pontoSelecionado.data,
+    pontoSelecionado.tipo
+  );
+
+  if (fotoUrl) {
+    fotoBatida.src = fotoUrl;
+    fotoContainer.style.display = "block";
+  }
+
+  fotoBatida.onclick = () => {
+  if (fotoBatida.src) window.open(fotoBatida.src, "_blank");
+};
+
+
+ // 🔹 Mostrar popup
+overlay.style.display = "block";
 const popup = overlay.querySelector(".popup");
 
-// Pega posição do clique
-const rect = celula.getBoundingClientRect();
-const popupWidth = 220;  // mesmo do CSS
-const popupHeight = 160; // altura aproximada do popup
+// Espera o popup renderizar (principalmente a imagem)
+requestAnimationFrame(() => {
+  const rect = celula.getBoundingClientRect();
+  const popupRect = popup.getBoundingClientRect();
 
-let left = rect.left + window.scrollX;
-let top = rect.bottom + window.scrollY + 6;
+  let left = rect.left + window.scrollX;
+  let top = rect.bottom + window.scrollY + 6;
 
-// Evita que saia da tela
-if (left + popupWidth > window.innerWidth) {
-  left = window.innerWidth - popupWidth - 10;
-}
-if (top + popupHeight > window.innerHeight + window.scrollY) {
-  top = rect.top + window.scrollY - popupHeight - 6;
-}
+  // Ajuste horizontal
+  if (left + popupRect.width > window.innerWidth) {
+    left = window.innerWidth - popupRect.width - 10;
+  }
 
-popup.style.left = `${left}px`;
-popup.style.top = `${top}px`;
+  // Ajuste vertical
+  if (top + popupRect.height > window.innerHeight + window.scrollY) {
+    top = rect.top + window.scrollY - popupRect.height - 6;
+  }
+
+  if (top < 10) top = 10;
+
+  popup.style.left = `${left}px`;
+  popup.style.top = `${top}px`;
+});
+
+
 
 });
 
-// ✅ Fechar popup
+      // ✅ Fechar popup
 btnFechar.onclick = () => {
   overlay.style.display = "none";
   campoValor.value = "";
+
+  const fotoContainer = document.getElementById("fotoContainer");
+  const fotoBatida = document.getElementById("fotoBatida");
+  fotoContainer.style.display = "none";
+  fotoBatida.src = "";
 };
+
 
 // ✅ Salvar (adicionar ou editar)
 btnSalvar.onclick = async () => {
@@ -1088,12 +1165,23 @@ btnSalvar.onclick = async () => {
 
     if (snapshot.empty) {
       // Adiciona novo ponto
-      await addDoc(colRef, { cpf, data, tipo, hora });
+      await addDoc(colRef, {
+  cpf,
+  data,
+  tipo,
+  hora,
+  foto_url: fotoBatida.src || null
+});
+
       alert("✅ Ponto adicionado com sucesso!");
     } else {
       // Atualiza ponto existente
       const docRef = snapshot.docs[0].ref;
-      await updateDoc(docRef, { hora });
+      await updateDoc(docRef, {
+  hora,
+  foto_url: fotoBatida.src || null
+});
+
       alert("✅ Ponto atualizado com sucesso!");
     }
 
@@ -1228,6 +1316,7 @@ animarPapaiNoel();
 
 </body>
 </html>
+
 
 
 
