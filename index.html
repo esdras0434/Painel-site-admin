@@ -610,21 +610,25 @@ function formatarData(dataStr) {
 // ==========================
 async function carregarFuncionarios() {
   console.log("📡 Carregando funcionários do Firestore...");
+
   try {
-  
-    const colRef = collection(db, "funcionarios");
-    const q = query(colRef, where("data", "==", hoje));
-const snapshot = await getDocs(q);
+    const snapshot = await getDocs(collection(db, "funcionarios"));
 
+    funcionarios = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
 
-    funcionarios = snapshot.docs.map((doc) => doc.data());
     console.log(`✅ Funcionários carregados: ${funcionarios.length}`);
     console.table(funcionarios);
+
   } catch (e) {
     console.error("❌ Erro carregando funcionários:", e);
   }
 }
+
 await carregarFuncionarios();
+
 
 // ==========================
 // 🔹 Autocomplete com logs
@@ -1224,6 +1228,7 @@ animarPapaiNoel();
 
 </body>
 </html>
+
 
 
 
