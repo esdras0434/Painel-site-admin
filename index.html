@@ -463,7 +463,6 @@
   <span></span><span></span><span></span><span></span><span></span>
   <span></span><span></span><span></span><span></span><span></span>
 </div>
-<canvas id="neve"></canvas>
 
 <img id="papaiNoel" src="https://i.pinimg.com/originals/76/f8/27/76f827e4fe0fdd57d944b90b624159a6.gif" style="position: absolute; width: 100px; top: 100px; left: 0; z-index: 9999;" />
 
@@ -612,8 +611,11 @@ function formatarData(dataStr) {
 async function carregarFuncionarios() {
   console.log("📡 Carregando funcionários do Firestore...");
   try {
+  
     const colRef = collection(db, "funcionarios");
-    const snapshot = await getDocs(colRef);
+    const q = query(colRef, where("data", "==", hoje));
+const snapshot = await getDocs(q);
+
 
     funcionarios = snapshot.docs.map((doc) => doc.data());
     console.log(`✅ Funcionários carregados: ${funcionarios.length}`);
@@ -853,7 +855,9 @@ async function carregarPendentes() {
   const colRef = collection(db, "pontos");
 
   try {
-    const snapshot = await getDocs(colRef);
+    const q = query(colRef, where("data", "==", hoje));
+const snapshot = await getDocs(q);
+
     console.log(`📦 Pontos retornados hoje (${hoje}): ${snapshot.size}`);
 
     const pontosHoje = {};
@@ -1220,6 +1224,7 @@ animarPapaiNoel();
 
 </body>
 </html>
+
 
 
 
