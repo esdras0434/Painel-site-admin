@@ -847,22 +847,6 @@ async function buscarPontos() {
   }
 }
 
-    // ======================================
-    // 🔹 Linha total no final da tabela
-    // ======================================
-    tabelaCorpo.innerHTML += `
-      <tr style="font-weight:bold; background:#e3f2fd;">
-        <td colspan="5" style="text-align:right;">TOTAL:</td>
-        <td>${totalHoras.toFixed(2)}</td>
-        <td>${totalExtras.toFixed(2)}</td>
-      </tr>
-    `;
-
-    console.log("✅ Tabela de pontos atualizada com totais!");
-  } catch (e) {
-    console.error("❌ Erro buscando pontos:", e);
-  }
-}
 window.buscarPontos = buscarPontos;
 
 
@@ -1330,6 +1314,7 @@ animarPapaiNoel();
 
 </body>
 </html>
+
 
 
 
