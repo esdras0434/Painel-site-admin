@@ -743,82 +743,66 @@ async function buscarPontos() {
     alert("Selecione um funcionário válido!");
     return;
   }
-  console.log("👤 CPF selecionado:", cpf);
 
-  const filtroMes = document.getElementById("filtroMes").value;
-  if (!filtroMes) {
-    alert("Por favor, selecione um MÊS para gerar o relatório completo.");
+  // 🔹 Captura os dois filtros
+  const filtroDataInput = document.getElementById("filtroData").value;
+  const filtroMesInput = document.getElementById("filtroMes").value;
+
+  // Validação: precisa de pelo menos um dos dois
+  if (!filtroDataInput && !filtroMesInput) {
+    alert("Por favor, selecione uma DATA específica ou um MÊS para o relatório.");
     return;
   }
-  console.log("🗓️ Mês filtrado:", filtroMes);
 
   try {
     const colRef = collection(db, "pontos");
     const q = query(colRef, where("cpf", "==", cpf));
     const snapshot = await getDocs(q);
 
-    console.log(`📦 Documentos retornados do Firestore: ${snapshot.size}`);
-
     const pontosPorData = {};
-
     snapshot.forEach((doc) => {
       const d = doc.data();
       if (!d.data) return;
-      if (filtroMes && !d.data.startsWith(filtroMes)) return;
+
+      // 🔍 Lógica de Filtro Inteligente:
+      // Se houver data específica, filtra por ela. Se não, filtra pelo mês.
+      if (filtroDataInput) {
+        if (d.data !== filtroDataInput) return;
+      } else if (filtroMesInput) {
+        if (!d.data.startsWith(filtroMesInput)) return;
+      }
 
       if (!pontosPorData[d.data]) {
         pontosPorData[d.data] = {
-          entrada_manha: "-",
-          saida_almoco: "-",
-          retorno_almoco: "-",
-          saida_tarde: "-",
+          entrada_manha: "-", saida_almoco: "-", retorno_almoco: "-", saida_tarde: "-",
         };
       }
       pontosPorData[d.data][d.tipo] = d.hora || "-";
     });
 
-    console.log("📅 Pontos agrupados por data:", pontosPorData);
-
     const tabelaCorpo = document.querySelector("#tabelaPontos tbody");
     tabelaCorpo.innerHTML = "";
 
     const nomeFuncionarioEl = document.getElementById("nomeFuncionario");
-    const funcionarioNome =
-      funcionarios.find((f) => f.cpf === cpf)?.nome || "Funcionário";
+    const funcionarioNome = funcionarios.find((f) => f.cpf === cpf)?.nome || "Funcionário";
     nomeFuncionarioEl.textContent = `Funcionário: ${funcionarioNome}`;
 
-    const [ano, mes] = filtroMes.split("-").map(Number);
-    const diasNoMes = new Date(ano, mes, 0).getDate();
-
-    console.log(`📆 Gerando tabela para ${diasNoMes} dias (${mes}/${ano})`);
-
-    // ======================================
-    // 🔹 Montagem da tabela com cálculos
-    // ======================================
     let totalHoras = 0;
     let totalExtras = 0;
 
-    for (let dia = 1; dia <= diasNoMes; dia++) {
-      const dataAtual = new Date(ano, mes - 1, dia);
-      const diaDaSemana = dataAtual.getDay(); // 0 = Domingo
-      const diaStr = String(dia).padStart(2, "0");
-      const mesStr = String(mes).padStart(2, "0");
-      const dataChave = `${ano}-${mesStr}-${diaStr}`;
-
+    // 🧱 Função interna para evitar repetição ao criar as linhas
+    const renderizarLinha = (dataChave) => {
       const ponto = pontosPorData[dataChave] || {
-        entrada_manha: "-",
-        saida_almoco: "-",
-        retorno_almoco: "-",
-        saida_tarde: "-",
+        entrada_manha: "-", saida_almoco: "-", retorno_almoco: "-", saida_tarde: "-",
       };
-  
 
       const { horas, extras } = calcularHorasTrabalhadas(ponto);
-
       totalHoras += horas;
       totalExtras += extras;
 
-      const classeDomingo = diaDaSemana === 0 ? 'class="domingo"' : "";
+      // Cálculo de domingo para estilo CSS
+      const dataObj = new Date(dataChave + "T00:00:00");
+      const classeDomingo = dataObj.getDay() === 0 ? 'class="domingo"' : "";
 
       tabelaCorpo.innerHTML += `
         <tr ${classeDomingo}>
@@ -827,11 +811,41 @@ async function buscarPontos() {
           <td data-tipo="saida_almoco">${ponto.saida_almoco}</td>
           <td data-tipo="retorno_almoco">${ponto.retorno_almoco}</td>
           <td data-tipo="saida_tarde">${ponto.saida_tarde}</td>
-          <td>${horas ? horas.toFixed(2) : "-"}</td>
+          <td>${horas > 0 ? horas.toFixed(2) : "-"}</td>
           <td>${extras > 0 ? extras.toFixed(2) : "-"}</td>
         </tr>
       `;
+    };
+
+    // 🚀 EXIBIÇÃO:
+    if (filtroDataInput) {
+      // Caso 1: Mostrar apenas a data específica selecionada
+      renderizarLinha(filtroDataInput);
+    } else {
+      // Caso 2: Mostrar o mês completo (seu comportamento original)
+      const [ano, mes] = filtroMesInput.split("-").map(Number);
+      const diasNoMes = new Date(ano, mes, 0).getDate();
+
+      for (let dia = 1; dia <= diasNoMes; dia++) {
+        const dataChave = `${ano}-${String(mes).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+        renderizarLinha(dataChave);
+      }
     }
+
+    // Linha de Totais
+    tabelaCorpo.innerHTML += `
+      <tr style="font-weight:bold; background:#e3f2fd;">
+        <td colspan="5" style="text-align:right;">TOTAL:</td>
+        <td>${totalHoras.toFixed(2)}</td>
+        <td>${totalExtras.toFixed(2)}</td>
+      </tr>
+    `;
+
+    console.log("✅ Tabela atualizada!");
+  } catch (e) {
+    console.error("❌ Erro:", e);
+  }
+}
 
     // ======================================
     // 🔹 Linha total no final da tabela
@@ -1316,6 +1330,7 @@ animarPapaiNoel();
 
 </body>
 </html>
+
 
 
 
